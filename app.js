@@ -149,12 +149,18 @@ function cerrarAdminPanel() {
 function cambiarModo() {
     const val = document.getElementById('source-selector').value;
     
-    // --- MEMORIA: Guardamos dónde estás ---
+    // 1. MEMORIA: Guardamos dónde estás
     localStorage.setItem('sys_last_mode', val);
-    // -------------------------------------
 
+    // 2. LIMPIEZA AUTOMÁTICA (EL FIX): 
+    // Si cambiamos de modo, borramos lo que había en pantalla para evitar mezclas.
+    // Esto asegura que si entras en X, no veas fotos de R34 de la sesión anterior.
+    document.getElementById('feed-infinito').innerHTML = '';
+    document.getElementById('centinela-scroll').style.display = 'none';
+    document.getElementById('loading-status').style.display = 'none'; // Ocultamos loading viejos
+
+    // 3. UI UPDATE
     document.querySelectorAll('.input-group').forEach(el => el.style.display = 'none');
-    
     const title = document.getElementById('app-title');
     
     if(val === 'r34') {
