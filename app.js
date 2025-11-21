@@ -340,16 +340,25 @@ function processRedditPost(p) {
     renderCard(src, prev, type, p.title, `u/${p.author}`, 'reddit');
 }
 
-// --- 4CHAN ---
+// --- 4CHAN (REMASTERIZADO DINÁMICO) ---
+
+// Estado del hilo actual
+let threadFilterMode = 'all'; 
+let threadViewMode = 'media'; // 'media' o 'all' (con texto)
+
 async function cargarCatalogo4Chan() {
     modoActual = 'chan_catalog';
     boardActual = document.getElementById('board-selector').value;
+    
     ocultarPanel();
     document.getElementById('nav-chan').style.display = 'none'; 
     document.getElementById('feed-infinito').innerHTML = '';
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('loading-status').innerText = `Cargando /${boardActual}/...`;
     document.getElementById('centinela-scroll').style.display = 'none'; 
+    
+    // 1. RESTAURAR EL DROPDOWN PARA MODO CATÁLOGO
+    setupDropdown('catalog');
 
     const url = `https://a.4cdn.org/${boardActual}/catalog.json`;
     try {
@@ -357,55 +366,213 @@ async function cargarCatalogo4Chan() {
         document.getElementById('loading-status').style.display = 'none';
         catalogCache = [];
         pages.forEach(p => { if(p.threads) catalogCache.push(...p.threads); });
-        renderCatalogoOrdenado();
-    } catch (e) { document.getElementById('loading-status').innerText = "Error 4Chan: " + e.message; }
+        renderCatalogoOrdenado(); 
+    } catch (e) { 
+        document.getElementById('loading-status').innerText = "Error 4Chan: " + e.message; 
+    }
+}
+
+// Función maestra para configurar el dropdown según dónde estemos
+function setupDropdown(context) {
+    const sortEl = document.getElementById('chan-sort');
+    if (!sortEl) return;
+    
+    sortEl.innerHTML = ''; // Limpiar opciones actuales
+
+    if (context === 'catalog') {
+        // Opciones de ordenamiento del catálogo
+        const opts = [
+            {v:'bump', t:'🔥 Activos'},
+            {v:'img', t:'🖼️ Más Img'},
+            {v:'new', t:'✨ Nuevos'}
+        ];
+        opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
+        sortEl.onchange = renderCatalogoOrdenado; // Vincular función de catálogo
+        
+    } else if (context === 'thread') {
+        // Opciones de filtrado dentro del hilo
+        const opts = [
+            {v:'all', t:'👁️ Ver Todo'},
+            {v:'vid', t:'🎬 Solo Videos'},
+            {v:'gif', t:'👾 Solo GIFs'},
+            {v:'img', t:'📷 Solo JPG/PNG'}
+        ];
+        opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
+        sortEl.onchange = filtrarHiloEnVivo; // Vincular función de filtrado
+    }
 }
 
 function renderCatalogoOrdenado() {
     if (modoActual !== 'chan_catalog') return;
+
     const sortEl = document.getElementById('chan-sort');
     if (!sortEl) return;
+
     document.getElementById('feed-infinito').innerHTML = '';
+
     const sortMode = sortEl.value;
     let threads = [...catalogCache];
-    if (sortMode === 'bump') threads.sort((a, b) => (b.last_modified || 0) - (a.last_modified || 0));
-    else if (sortMode === 'new') threads.sort((a, b) => b.no - a.no);
-    else if (sortMode === 'img') threads.sort((a, b) => (b.images || 0) - (a.images || 0));
+
+    if (sortMode === 'bump') {
+        threads.sort((a, b) => (b.last_modified || 0) - (a.last_modified || 0));
+    } else if (sortMode === 'new') {
+        threads.sort((a, b) => b.no - a.no);
+    } else if (sortMode === 'img') {
+        threads.sort((a, b) => (b.images || 0) - (a.images || 0));
+    }
     ocultarPanel();
-    threads.forEach(renderHilo4Chan);
+
+    threads.forEach(thread => renderHilo4Chan(thread));
 }
 
 function renderHilo4Chan(t) {
     const thumb = `https://i.4cdn.org/${boardActual}/${t.tim}s.jpg`;
     const titleRaw = t.sub || t.com || "Sin descripción";
     const cleanDesc = titleRaw.replace(/<br>/g, ' ').replace(/(<([^>]+)>)/gi, "").substring(0, 150);
-    const card = document.createElement('div'); card.className = 'tarjeta thread-card';
-    card.onclick = () => cargarHiloCompleto(t.no);
-    card.innerHTML = `<div class="media-wrapper" style="min-height:150px;"><img class="media-content" src="${thumb}" loading="lazy" style="object-fit:contain;height:200px;"><div class="overlay-btn" style="background:rgba(0,0,0,0.8)">VER HILO</div></div><div class="thread-header"><span class="badge bg-chan">/${boardActual}/</span> <span style="color:#aaa; font-size:0.8rem">#${t.no}</span><div class="thread-title" style="font-size:0.8rem; margin-top:5px; font-weight:normal; color:#ddd">${cleanDesc}</div></div><div class="meta-footer"><span>📷 ${t.images}</span><span>💬 ${t.replies}</span></div>`;
+    
+    const card = document.createElement('div'); 
+    card.className = 'tarjeta thread-card';
+    
+    // AQUI ESTÁ LA MAGIA DE LOS DOS BOTONES
+    card.innerHTML = `
+        <div class="media-wrapper" style="min-height:150px;">
+            <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:contain;height:200px;">
+            <div style="position:absolute; bottom:10px; display:flex; gap:10px; justify-content:center; width:100%;">
+                <button class="overlay-btn" onclick="cargarHiloCompleto(${t.no}, 'media')" style="cursor:pointer; background:rgba(0,0,0,0.8); border-color:#00ffaa;">
+                    📷 MEDIA
+                </button>
+                <button class="overlay-btn" onclick="cargarHiloCompleto(${t.no}, 'all')" style="cursor:pointer; background:rgba(0,0,0,0.8); border-color:#ffaa00;">
+                    📷+💬
+                </button>
+            </div>
+        </div>
+        <div class="thread-header">
+            <span class="badge bg-chan">/${boardActual}/</span> 
+            <span style="color:#aaa; font-size:0.8rem">#${t.no}</span>
+            <div class="thread-title" style="font-size:0.8rem; margin-top:5px; font-weight:normal; color:#ddd">${cleanDesc}</div>
+        </div>
+        <div class="meta-footer">
+            <span>📷 ${t.images}</span><span>💬 ${t.replies}</span>
+        </div>`;
+        
     document.getElementById('feed-infinito').appendChild(card);
 }
-async function cargarHiloCompleto(threadId) {
+
+async function cargarHiloCompleto(threadId, viewMode) {
     scrollCatalogPos = window.scrollY;
     modoActual = 'chan_thread';
+    threadViewMode = viewMode; // Guardamos si quiere ver texto o no
+
     ocultarPanel();
     document.getElementById('feed-infinito').innerHTML = '';
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('nav-chan').style.display = 'block';
+    
+    // 2. CAMBIAR EL DROPDOWN A MODO FILTRO
+    setupDropdown('thread');
+
     const url = `https://a.4cdn.org/${boardActual}/thread/${threadId}.json`;
     try {
         const data = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
+        
         let count = 0;
         data.posts.forEach(p => {
-            if(p.tim) {
-                const src = `https://i.4cdn.org/${boardActual}/${p.tim}${p.ext}`;
-                const th = `https://i.4cdn.org/${boardActual}/${p.tim}s.jpg`;
-                renderCard(src, th, detectType(src), p.filename+p.ext, '', 'chan');
-                count++;
-            }
+            const hasMedia = !!p.tim;
+            
+            // Lógica de filtrado inicial según el modo de vista elegido
+            if (viewMode === 'media' && !hasMedia) return; 
+
+            // Renderizado especial para 4chan
+            renderChanPost(p, hasMedia, viewMode);
+            count++;
         });
-        if(count===0) document.getElementById('loading-status').innerText = "Sin imágenes.";
-    } catch(e) { document.getElementById('loading-status').innerText = "Hilo no encontrado."; }
+
+        if(count===0) document.getElementById('loading-status').innerText = "Hilo vacío o sin imágenes.";
+        
+    } catch(e) { 
+        document.getElementById('loading-status').innerText = "Hilo muerto (404)."; 
+    }
+}
+
+function renderChanPost(p, hasMedia, viewMode) {
+    // Determinamos tipo de archivo
+    let type = 'text';
+    let src = '', prev = '';
+    
+    if (hasMedia) {
+        src = `https://i.4cdn.org/${boardActual}/${p.tim}${p.ext}`;
+        prev = `https://i.4cdn.org/${boardActual}/${p.tim}s.jpg`;
+        type = detectType(src);
+    }
+
+    // Crear tarjeta con atributos para filtrado DOM
+    const card = document.createElement('div'); 
+    card.className = 'tarjeta chan-post-item';
+    card.dataset.filetype = type; // 'vid', 'gif', 'img', 'text'
+
+    let contentHTML = '';
+
+    // 1. MEDIA
+    if (hasMedia) {
+        let badge = '', mediaEl = '';
+        if(type==='vid') {
+            badge=`<span class="badge bg-vid">VID</span>`;
+            mediaEl=`<div class="media-wrapper"><video class="media-content" controls loop playsinline preload="none" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        } else if(type==='gif') {
+            badge=`<span class="badge bg-gif">GIF</span>`;
+            mediaEl=`<div class="media-wrapper" onclick="alternarGif(this,'${src}','${prev}')"><img class="media-content" src="${prev}" loading="lazy"><div class="overlay-btn">GIF</div><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        } else {
+            badge=`<span class="badge bg-img">IMG</span>`;
+            mediaEl=`<div class="media-wrapper"><img class="media-content" src="${prev}" loading="lazy" onclick="abrirLightbox('${src}','img')"><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        }
+        contentHTML += mediaEl;
+    }
+
+    // 2. TEXTO (Si el modo es 'all')
+    if (viewMode === 'all' && p.com) {
+        // Limpiamos un poco el comentario, pero mantenemos greentext
+        let cleanCom = p.com.replace(/<wbr>/g, ''); 
+        // Estilo simple para el texto
+        contentHTML += `<div style="padding:10px; font-size:0.85rem; color:#ccc; border-top:1px solid #222; word-break:break-word; overflow-wrap:anywhere;">
+            <span style="color:#666; font-size:0.7rem">#${p.no}</span><br>
+            ${cleanCom}
+        </div>`;
+    } else if (!hasMedia && viewMode === 'all') {
+        // Caso raro: Solo texto sin contenido (borrado o error)
+        return;
+    }
+
+    // Si es solo texto y no media, necesitamos un wrapper
+    if (!hasMedia && viewMode === 'all') {
+        card.innerHTML = contentHTML; // Ya tiene el div de texto
+    } else {
+        card.innerHTML = contentHTML; // Media + Texto (opcional)
+    }
+
+    // Observer para videos
+    if(type==='vid') videoObserver.observe(card.querySelector('video'));
+    
+    document.getElementById('feed-infinito').appendChild(card);
+}
+
+// Función para el dropdown dentro del hilo
+function filtrarHiloEnVivo() {
+    const filter = document.getElementById('chan-sort').value; // all, vid, gif, img
+    const cards = document.querySelectorAll('.chan-post-item');
+
+    cards.forEach(c => {
+        const type = c.dataset.filetype;
+        
+        if (filter === 'all') {
+            c.style.display = 'block';
+        } else {
+            // Si filtro es 'vid', mostramos solo 'vid'.
+            // Si filtro es 'img', mostramos 'img' (jpg/png).
+            if (type === filter) c.style.display = 'block';
+            else c.style.display = 'none';
+        }
+    });
 }
 
 // --- X (NITTER) ---
