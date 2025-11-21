@@ -522,7 +522,7 @@ function renderChips() { const c = document.getElementById('lista-chips'); c.inn
 // Modal Tags
 function abrirModal(tag) { const modal = document.getElementById('modal-tag-options'); document.getElementById('modal-tag-name').innerText = tag; tagSeleccionadoTemp = tag; modal.style.display = 'flex'; }
 function cerrarModal(e) { const modal = document.getElementById('modal-tag-options'); if (!e || e.target === modal) { modal.style.display = 'none'; } }
-function accionTag(mode) { if (mode === 'add') { agregarTag(tagSeleccionadoTemp); cerrarModal(null); return; } if (mode === 'new') { misTags = [tagSeleccionadoTemp]; renderChips(); cerrarModal(null); buscarR34(); return; } }
+function accionTag(mode) { if (mode === 'add') { agregarTag(tagSeleccionadoTemp); cerrarModal(null); buscarR34(); return; } if (mode === 'new') { misTags = [tagSeleccionadoTemp]; renderChips(); cerrarModal(null); buscarR34(); return; } }
 
 // INIT
 window.onload = function() {
