@@ -135,7 +135,7 @@ async function fetchSmart(targetUrl) {
 
     // Reddit SIEMPRE directo
     if (targetUrl.includes('4cdn.org') || targetUrl.includes('nitter') || targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
-        inicio = 1;
+        inicio = 0;
     }
 
     for (let i = inicio; i < PROXIES.length; i++) {
