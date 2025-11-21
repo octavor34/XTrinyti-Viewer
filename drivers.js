@@ -3,19 +3,19 @@ const R34_KEY = '074ca99691c79e1751d29e275d862f8ae05739b37665c44f7cdca24c206176b
 const R34_UID = '5604796';
 
 const PROXIES = [
+    // Intento directo (a veces funciona si el usuario tiene extensiones o configuración permisiva)
     { url: '', type: 'direct' },
 
-    // Proxy ESTABLE (funciona hoy 2025)
-    { url: 'https://thingproxy.freeboard.io/fetch/', type: 'light' },
+    // El MVP actual (funciona para Reddit casi siempre)
+    { url: 'https://corsproxy.io/?', type: 'light' },
 
-    // Proxy alternativo que acepta JSON grande
-    { url: 'https://api.allorigins.win/raw?url=', type: 'light' },
-
-    // Fallback final
-    { url: 'https://cors.bypass.workers.dev/?', type: 'light' }
+    // Alternativas decentes
+    { url: 'https://api.allorigins.win/get?url=', type: 'special_unpack' }, // Requiere lógica especial
+    { url: 'https://api.codetabs.com/v1/proxy/?quest=', type: 'light' }
 ];
 
 const FOURCHAN_PROXIES = [
     "https://api.codetabs.com/v1/proxy/?quest=",
     "https://api.allorigins.win/raw?url="
 ];
+

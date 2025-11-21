@@ -174,17 +174,12 @@ function detectType(url) {
 // --- NETWORK ENGINE ---
 // Requiere que PROXIES esté definido en drivers.js
 async function fetchSmart(targetUrl) {
-    let inicio = 0;
+    let lastError = null;
 
-   // Reddit SIEMPRE directo (inicio en 1)
    if (targetUrl.includes('nitter')) {
     inicio = 1;
     }
     
-    if (targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
-        inicio = 1; // <-- ESTABLECE ESTE VALOR
-    }
-
     if (targetUrl.includes('4cdn.org')) {
         // Iteramos sobre la lista específica de proxies para 4chan
         for (let proxyUrl of FOURCHAN_PROXIES) {
@@ -208,36 +203,57 @@ async function fetchSmart(targetUrl) {
         throw new Error("Error de Conexión (Todos los proxies específicos para 4chan fallaron)");
     }
 
-    for (let i = inicio; i < PROXIES.length; i++) {
+    for (let i = 0; i < PROXIES.length; i++) {
         const proxy = PROXIES[i];
         let finalUrl;
 
-        // Caso directo
         if (proxy.type === 'direct') {
             finalUrl = targetUrl;
-        }
-        // Proxies tipo corsproxy.io/?URL
-        else if (proxy.url.includes('?')) {
-            finalUrl = proxy.url + targetUrl;
-        }
-        // Proxies que requieren URL codificada
-        else {
+        } else {
             finalUrl = proxy.url + encodeURIComponent(targetUrl);
         }
 
         try {
             const res = await fetch(finalUrl);
-            if (!res.ok) throw new Error("HTTP " + res.status);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
             const txt = await res.text();
-            if (!txt) throw new Error("Vacío");
+            if (!txt) throw new Error("Respuesta vacía");
 
-            if (txt.trim().startsWith('<')) return txt;
-            return JSON.parse(txt);
-        } catch (e) { }
+            // Detectar bloqueo HTML de Reddit disfrazado de éxito
+            if (txt.includes("Whoa there, pardner!") || txt.includes("Too Many Requests")) {
+                throw new Error("Bloqueo de Reddit detectado");
+            }
+
+            let json;
+            try {
+                json = JSON.parse(txt);
+            } catch (e) {
+                // Si no es JSON, puede ser basura HTML del proxy
+                throw new Error("No se recibió JSON válido");
+            }
+
+            // MANEJO ESPECIAL: allorigins envuelve la respuesta en "contents"
+            if (proxy.type === 'special_unpack') {
+                if (json.contents) {
+                    try {
+                        return JSON.parse(json.contents); // Desempaquetamos el JSON real
+                    } catch (e) {
+                        return json.contents; // O devolvemos texto si era texto
+                    }
+                }
+            }
+
+            return json;
+
+        } catch (e) {
+            lastError = e;
+            // console.warn(`Proxy ${i} falló:`, e.message); // Descomentar para depurar
+            continue; // Siguiente proxy
+        }
     }
 
-    throw new Error("Error de Conexión (Todos los proxies fallaron)");
+    throw new Error(`Fallo total de red. Último error: ${lastError?.message}`);
 }
 
 function ejecutarBusqueda() {
@@ -297,35 +313,55 @@ function renderTarjetaR34(item) {
 // --- REDDIT ---
 function buscarReddit() { ejecutarBusqueda(); }
 async function cargarPaginaReddit() {
-    logDebug("cargarPaginaReddit: Iniciando..."); // Log de inicio
+    logDebug("cargarPaginaReddit: Iniciando...");
     if (cargando) {
-         logDebug("cargarPaginaReddit: Cancelado, ya hay una carga en progreso.");
+         logDebug("cargarPaginaReddit: Cancelado, ocupado.");
          return;
     }
     cargando = true;
+
+    // Preparamos la URL
     let sub = document.getElementById('reddit-selector').value;
     if(sub==='custom') sub = document.getElementById('reddit-custom').value.trim();
     sub = sub.replace(/^(r\/|\/r\/|\/)/i, '');
-    let url = `https://i.reddit.com/r/${sub}/hot.json?limit=20`;
+    
+    // NOTA: Usamos www.reddit.com en lugar de i.reddit.com (legacy inestable)
+    let url = `https://www.reddit.com/r/${sub}/hot.json?limit=20`;
     if(redditAfter) url += `&after=${redditAfter}`;
-    logDebug(`cargarPaginaReddit: URL construida: ${url}`); // Log de URL
+
+    logDebug(`Intentando URL: ${url}`);
+
     try {
-        logDebug(`cargarPaginaReddit: Llamando a fetchSmart con: ${url}`);
         const data = await fetchSmart(url);
-        logDebug(`cargarPaginaReddit: fetchSmart devolvió datos, procesando...`); // Log de éxito de fetchSmart
+        
+        // --- AQUÍ ESTABA TU ERROR MORTAL ---
+        // Validamos que data exista y tenga la estructura sagrada antes de tocarla
+        if (!data || !data.data || !Array.isArray(data.data.children)) {
+            console.error("Estructura inválida recibida:", data);
+            throw new Error("Reddit devolvió basura o te ha bloqueado (Rate Limit 429).");
+        }
+        // -----------------------------------
+
+        logDebug("Datos válidos recibidos.");
         document.getElementById('loading-status').style.display = 'none';
         document.getElementById('centinela-scroll').style.display = 'flex';
+        
         const posts = data.data.children;
-        if(!posts.length) { hayMas=false; document.getElementById('centinela-scroll').innerText="Fin."; return; }
+        if(!posts.length) { 
+            hayMas=false; 
+            document.getElementById('centinela-scroll').innerText="Fin del abismo."; 
+            return; 
+        }
+        
         redditAfter = data.data.after;
         for (let i = 0; i < posts.length; i++) {
             processRedditPost(posts[i].data);
         }
+
     } catch(e) {
-        logDebug(`cargarPaginaReddit: Error capturado: ${e.message}`); // Log del error
-        document.getElementById('loading-status').innerText = e.message;
+        logDebug(`CRASH: ${e.message}`);
+        document.getElementById('loading-status').innerText = `Error: ${e.message}`;
     } finally {
-        logDebug("cargarPaginaReddit: Finalizando (finally)."); // Log de finalización
         cargando=false;
     }
 }
