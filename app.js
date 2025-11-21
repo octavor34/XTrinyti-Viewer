@@ -1,5 +1,6 @@
-// --- SISTEMA DE DEBUG MEJORADO (NUEVO) ---
-let debugEnabled = localStorage.getItem('sys_debug_mode') === 'true';
+/ --- SISTEMA DE DEBUG MEJORADO (VOLÁTIL) ---
+// Cambiado: Ahora siempre empieza apagado al recargar
+let debugEnabled = false; 
 
 function initDebugSystem() {
     const consoleDiv = document.getElementById('debug-console');
@@ -11,14 +12,15 @@ function initDebugSystem() {
 
 function toggleDebugMode() {
     debugEnabled = !debugEnabled;
-    localStorage.setItem('sys_debug_mode', debugEnabled);
+    // ELIMINADO: Ya no guardamos en localStorage
+    // localStorage.setItem('sys_debug_mode', debugEnabled); 
     
     const consoleDiv = document.getElementById('debug-console');
     if (consoleDiv) consoleDiv.style.display = debugEnabled ? 'block' : 'none';
     
     updateDebugButtonUI();
     
-    if(debugEnabled) logDebug("Sistema de depuración: ACTIVADO");
+    if(debugEnabled) logDebug("Sistema de depuración: ACTIVADO (Sesión Temporal)");
 }
 
 function updateDebugButtonUI() {
