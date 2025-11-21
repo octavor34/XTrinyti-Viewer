@@ -919,7 +919,6 @@ function accionTag(mode) {
         return;
     }
 }
-logDebug("app.js: Cargado y funciones definidas.");
 
 // INIT
 window.onload = function() {
