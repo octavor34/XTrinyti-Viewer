@@ -15,3 +15,6 @@ const PROXIES = [
     { url: 'https://cors.bypass.workers.dev/?', type: 'light' }
 ];
 
+// --- AÑADIR ESTA NUEVA CONSTANTE ---
+const FOURCHAN_PROXY = "https://api.codetabs.com/v1/proxy/?quest=";
+// --- FIN DE LO AÑADIDO ---
