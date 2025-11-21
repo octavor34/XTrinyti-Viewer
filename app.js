@@ -796,7 +796,6 @@ function accionTag(mode) {
         return;
     }
 }
-// INIT
 // INIT - RECUPERACIÓN DE SESIÓN INTELIGENTE
 window.onload = function() {
     initDebugSystem();
