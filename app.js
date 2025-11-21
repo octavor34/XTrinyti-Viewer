@@ -1,5 +1,5 @@
 // --- SISTEMA DE DEBUG MEJORADO (NUEVO) ---
-let debugEnabled = localStorage.getItem('sys_debug_mode') === 'true';
+let debugEnabled = false;
 
 function initDebugSystem() {
     const consoleDiv = document.getElementById('debug-console');
