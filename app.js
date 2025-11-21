@@ -7,6 +7,28 @@ window.onerror = function(msg, url, line) {
     }
 };
 
+// Función para añadir mensajes al panel de debug
+function logDebug(message) {
+    const consoleDiv = document.getElementById('debug-console');
+    if (consoleDiv) {
+        // Mostrar el panel si está oculto
+        consoleDiv.style.display = 'block';
+        // Añadir el mensaje con timestamp
+        const timestamp = new Date().toISOString().substr(11, 12); // HH:MM:SS.mmm
+        consoleDiv.innerText += `[${timestamp}] ${message}\n`;
+        // Auto-scroll al final
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    }
+}
+
+// Función para limpiar el panel de debug
+function clearDebugLog() {
+    const consoleDiv = document.getElementById('debug-console');
+    if (consoleDiv) {
+        consoleDiv.innerText = '';
+    }
+}
+
 // --- ESTADO GLOBAL ---
 let modoActual = 'r34';
 let paginaActual = 0;
@@ -254,14 +276,22 @@ function renderTarjetaR34(item) {
 // --- REDDIT ---
 function buscarReddit() { ejecutarBusqueda(); }
 async function cargarPaginaReddit() {
-    if (cargando) return; cargando = true;
+    logDebug("cargarPaginaReddit: Iniciando..."); // Log de inicio
+    if (cargando) {
+         logDebug("cargarPaginaReddit: Cancelado, ya hay una carga en progreso.");
+         return;
+    }
+    cargando = true;
     let sub = document.getElementById('reddit-selector').value;
     if(sub==='custom') sub = document.getElementById('reddit-custom').value.trim();
     sub = sub.replace(/^(r\/|\/r\/|\/)/i, '');
     let url = `https://i.reddit.com/r/${sub}/hot.json?limit=20`;
     if(redditAfter) url += `&after=${redditAfter}`;
+    logDebug(`cargarPaginaReddit: URL construida: ${url}`); // Log de URL
     try {
-        const data = await fetchSmart(url);  
+        logDebug(`cargarPaginaReddit: Llamando a fetchSmart con: ${url}`);
+        const data = await fetchSmart(url);
+        logDebug(`cargarPaginaReddit: fetchSmart devolvió datos, procesando...`); // Log de éxito de fetchSmart
         document.getElementById('loading-status').style.display = 'none';
         document.getElementById('centinela-scroll').style.display = 'flex';
         const posts = data.data.children;
@@ -269,8 +299,14 @@ async function cargarPaginaReddit() {
         redditAfter = data.data.after;
         for (let i = 0; i < posts.length; i++) {
             processRedditPost(posts[i].data);
-        }        
-    } catch(e) { document.getElementById('loading-status').innerText = e.message; } finally { cargando=false; }
+        }
+    } catch(e) {
+        logDebug(`cargarPaginaReddit: Error capturado: ${e.message}`); // Log del error
+        document.getElementById('loading-status').innerText = e.message;
+    } finally {
+        logDebug("cargarPaginaReddit: Finalizando (finally)."); // Log de finalización
+        cargando=false;
+    }
 }
 function processRedditPost(p) {
     if(p.is_self) return;
