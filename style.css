@@ -1,0 +1,82 @@
+:root { --bg: #050505; --card: #0f0f0f; --accent: #3b82f6; --text: #e5e5e5; }
+body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; overflow-x: hidden;}
+
+header { background: rgba(15, 15, 15, 0.95); padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2000; border-bottom: 1px solid #333; backdrop-filter: blur(10px); }
+h1 { margin: 0; font-size: 1rem; color: #fff; font-weight: 800; }
+.btn-icon { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+
+#panel-control { background: #111; padding: 20px; display: none; border-bottom: 1px solid #333; position: fixed; top: 60px; width: 100%; z-index: 1900; box-sizing: border-box; max-height: 80vh; overflow-y: auto; }
+select { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; margin-bottom: 15px; font-size: 1rem; font-weight: bold; }
+
+.input-group { display: none; }
+.lbl-title { color:#888; font-size:0.8rem; margin-bottom:5px; display:block; }
+
+.tag-container { background: #000; border: 1px solid #333; border-radius: 12px; padding: 8px; display: flex; flex-wrap: wrap; gap: 8px; position: relative; margin-bottom: 15px; min-height: 45px; }
+.tag-chip { background: var(--accent); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; }
+.tag-chip::after { content: "×"; margin-left: 8px; opacity: 0.6; }
+
+input[type="text"] { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; margin-bottom: 15px; font-size: 1rem; font-weight: bold; box-sizing: border-box; outline:none; }
+#input-tags-real, #reddit-custom, #x-search { background: transparent; border: none; color: #fff; margin:0; padding:0; width: 100%; font-size: 1rem; outline:none; }
+
+#sugerencias-box { position: absolute; top: 100%; left: 0; right: 0; background: #1f1f1f; border: 1px solid #444; z-index: 200; max-height: 250px; overflow-y: auto; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.9); }
+.sugerencia-item { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; color: #ccc; cursor: pointer; }
+
+button.btn-action { width: 100%; padding: 16px; background: var(--accent); color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 1rem; transition: background 0.3s; }
+
+#nav-chan { display: none; padding: 10px 20px; background: #222; border-bottom: 1px solid #333; position: sticky; top: 65px; z-index: 90; }
+.btn-back { background: #333; color: #fff; border: 1px solid #555; padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; cursor: pointer; display: inline-block;}
+
+#feed-infinito { max-width: 600px; margin: 0 auto; padding-top: 20px; padding-left: 10px; padding-right: 10px; min-height: 300px;}
+.tarjeta { background: var(--card); margin-bottom: 25px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); content-visibility: auto; contain-intrinsic-size: 400px; }
+
+.tarjeta.thread-card { cursor: pointer; border: 1px solid #333; }
+.thread-header { padding: 10px 15px; background: #151515; border-top: 1px solid #222; }
+.thread-title { font-size: 0.95rem; font-weight: bold; color: #fff; display: block; margin-bottom: 4px; }
+.thread-desc { font-size: 0.8rem; color: #aaa; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.media-wrapper { position: relative; width: 100%; min-height: 300px; background: #080808; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+.media-content { width: 100%; height: auto; display: block; max-height: 85vh; object-fit: cover; }
+
+.btn-download { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; pointer-events: auto; border: 1px solid rgba(255,255,255,0.2); z-index: 10; }
+.overlay-btn { position: absolute; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.5); border-radius: 50px; padding: 8px 16px; font-weight: bold; pointer-events: none; backdrop-filter: blur(4px); transition: opacity 0.2s;}
+.playing .overlay-btn { opacity: 0; }
+
+.meta-footer { padding: 12px 15px; background: #131313; display: flex; justify-content: space-between; align-items: center; }
+.badge { font-size: 0.7rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.5px; text-transform: uppercase; color: white; margin-right: 5px;}
+.bg-vid { background: #db2777; } .bg-gif { background: #9333ea; } .bg-img { background: #333; } .bg-reddit { background: #ff4500; } .bg-x { background: #000; border: 1px solid #333; } .bg-chan { background: #004d40; color: #80cbc4; }
+.btn-expand-tags { color: #888; font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 5px; }
+.tags-drawer { display: none; padding: 15px; border-top: 1px solid #222; gap: 8px; flex-wrap: wrap; background: #0a0a0a;}
+.tags-drawer.open { display: flex; }
+.mini-tag { font-size: 0.75rem; color: #999; background: #1a1a1a; padding: 5px 10px; border-radius: 8px; border: 1px solid #333; }
+
+#lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; display: none; overflow: hidden; touch-action: none; }
+#lightbox-transform-layer { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transform-origin: center center; will-change: transform; }
+#lightbox-img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
+#lightbox-video { width: 100%; height: auto; max-height: 100%; }
+#lb-controls { position: absolute; top: 20px; right: 20px; z-index: 3000; display: flex; gap: 15px; }
+.lb-btn { background: rgba(50,50,50,0.8); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; border: 1px solid #666; backdrop-filter: blur(4px); font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+
+#loading-status { text-align: center; padding: 40px; color: #666; font-family: monospace; display:none;}
+#centinela-scroll { height: 80px; display: flex; justify-content: center; align-items: center; color: #444; }
+.error-text { color: #ff5555; font-weight: bold; display:block; margin-bottom:10px;}
+
+#modal-tag-options { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 3000; display: none; justify-content: center; align-items: flex-end; }
+.modal-content { background: #1a1a1a; width: 100%; max-width: 500px; border-radius: 15px 15px 0 0; border-top: 1px solid #444; padding: 20px; box-sizing: border-box; animation: slideUp 0.2s ease-out; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-title { font-size: 1.2rem; color: #fff; margin-bottom: 20px; text-align: center; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 10px;}
+.modal-btn { display: flex; width: 100%; padding: 15px; margin-bottom: 10px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; align-items: center; }
+.btn-search-solo { background: #220000; color: #ff5555; border: 1px solid #440000; }
+.btn-add-search { background: var(--accent); color: white; }
+.btn-cancel { background: transparent; color: #888; justify-content: center; }
+
+#debug-console { background: #000; border-top: 2px solid #f00; color: #f00; padding: 10px; font-size: 0.7rem; display: none; position: fixed; bottom:0; width:100%; z-index:5000; max-height: 200px; overflow-y:scroll;}
+/* El telón que oscurece el fondo */
+#menu-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    z-index: 1800; /* AQUÍ ESTÁ LA CLAVE: Menor que el panel */
+    display: none;
+}

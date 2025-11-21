@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="referrer" content="no-referrer"> 
+    <title>TRINITY MODULAR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1 id="app-title">UNIVERSAL VIEWER</h1>
+        <button class="btn-icon" onclick="toggleMenu()">⚙️</button>
+    </header>
+
+    <div id="panel-control">
+        <label class="lbl-title">Plataforma:</label>
+        <select id="source-selector" onchange="cambiarModo()">
+            <option value="r34">🟦 Rule34</option>
+            <option value="4chan">🍀 4Chan</option>
+            <option value="reddit">🟧 Reddit</option>
+            <option value="x">🖤 X (Twitter)</option>
+        </select>
+
+        <div id="r34-inputs" class="input-group">
+            <div class="tag-container">
+                <div id="lista-chips"></div>
+                <input type="text" id="input-tags-real" placeholder="Buscar tags..." autocomplete="off">
+                <div id="sugerencias-box"></div>
+            </div>
+            <button class="btn-action" onclick="buscarR34()">BUSCAR EN R34</button>
+        </div>
+
+        <div id="chan-inputs" class="input-group">
+            <label class="lbl-title">Tablón:</label>
+            <select id="board-selector">
+                <option value="gif">/gif/ - Adult GIF</option>
+                <option value="d">/d/ - Hentai Alternative</option>
+                <option value="h">/h/ - Hentai</option>
+                <option value="aco">/aco/ - Adult Cartoons</option>
+                <option value="hc">/hc/ - Hardcore</option>
+                <option value="b">/b/ - Random</option>
+                <option value="s">/s/ - Sexy Beautiful Women</option>
+            </select>
+            <label class="lbl-title">Orden:</label>
+            <select id="chan-sort" onchange="renderCatalogoOrdenado()">
+                <option value="bump">🔥 Activos</option>
+                <option value="img">🖼️ Más Imágenes</option>
+                <option value="new">✨ Nuevos</option>
+            </select>
+            <button class="btn-action" onclick="cargarCatalogo4Chan()" style="background:#004d40">CARGAR TABLÓN</button>
+        </div>
+
+        <div id="reddit-inputs" class="input-group">
+            <label class="lbl-title">Subreddit:</label>
+            <select id="reddit-selector" onchange="checkRedditInput()">
+                <option value="rule34">r/rule34</option>
+                <option value="nsfw">r/nsfw</option>
+                <option value="jav">r/jav</option>
+                <option value="ecchi">r/ecchi</option>
+                <option value="hentai">r/hentai</option>
+                <option value="custom">...Escribir otro</option>
+            </select>
+            <input type="text" id="reddit-custom" placeholder="Ej: cosplay" style="display:none; margin-top: 5px;">
+            <button class="btn-action" onclick="buscarReddit()">IR AL SUBREDDIT</button>
+        </div>
+
+        <div id="x-inputs" class="input-group">
+            <input type="text" id="x-search" placeholder="Ej: elonmusk o #art">
+            <button class="btn-action" style="background:#000; border:1px solid #333" onclick="ejecutarBusquedaX()">BUSCAR EN X</button>
+        </div>
+
+    </div>
+
+    <div id="nav-chan">
+        <button class="btn-back" onclick="volverCatalogo()">⬅ Volver al Catálogo</button>
+    </div>
+
+    <div id="loading-status">Listo.</div>
+    <div id="feed-infinito"></div>
+    <div id="centinela-scroll">...</div>
+
+    <div id="menu-backdrop" onclick="toggleMenu()"></div>
+
+    <div id="lightbox">
+        <div id="lb-controls">
+            <div class="lb-btn" onclick="resetZoom()">⟲</div>
+            <div class="lb-btn" onclick="cerrarLightbox()">✕</div>
+        </div>
+        <div id="lightbox-transform-layer"></div>
+    </div>
+
+    <div id="modal-tag-options" onclick="cerrarModal(event)">
+        <div class="modal-content">
+            <div class="modal-title">Tag: <span id="modal-tag-name" style="color:var(--accent)">...</span></div>
+            <button class="modal-btn btn-add-search" onclick="accionTag('add')">➕ Añadir</button>
+            <button class="modal-btn btn-search-solo" onclick="accionTag('new')">🔍 Buscar SOLO esto</button>
+            <button class="modal-btn btn-cancel" onclick="cerrarModal(null)">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="debug-console"></div>
+
+    <script src="drivers.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
