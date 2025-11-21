@@ -133,9 +133,9 @@ function detectType(url) {
 async function fetchSmart(targetUrl) {
     let inicio = 0;
 
-    // Reddit SIEMPRE directo
-    if (targetUrl.includes('nitter') || targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
-        inicio = 1;
+    // Reddit y 4chan SIEMPRE usan proxies (inicio en 1)
+    if (targetUrl.includes('4cdn.org') || targetUrl.includes('nitter') || targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
+        inicio = 1; // <-- VOLVER A ESTO
     }
 
     // --- CORRECCIÓN CENTRALIZADA PARA 4CHAN ---
