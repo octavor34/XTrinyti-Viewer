@@ -340,7 +340,10 @@ scrollCatalogPos = window.scrollY || window.pageYOffset || document.documentElem
 
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('nav-chan').style.display = 'block';
-    const url = `https://a.4cdn.org/${boardActual}/thread/${threadId}.json`;
+    const originalUrl = `https://a.4cdn.org/${boardActual}/thread/${threadId}.json`;
+    // --- CORREGIDO ---
+    const url = FOURCHAN_PROXY + encodeURIComponent(originalUrl);
+    // ---
     try {
         const data = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
