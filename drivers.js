@@ -14,3 +14,8 @@ const PROXIES = [
     // Fallback final
     { url: 'https://cors.bypass.workers.dev/?', type: 'light' }
 ];
+
+const FOURCHAN_PROXIES = [
+    "https://api.codetabs.com/v1/proxy/?quest=",
+    "https://api.allorigins.win/raw?url="
+];

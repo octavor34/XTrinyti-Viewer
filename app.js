@@ -138,12 +138,27 @@ async function fetchSmart(targetUrl) {
     inicio = 1;
     }
 
-    // --- CORRECCIÓN CENTRALIZADA PARA 4CHAN ---
-    let urlToUse = targetUrl;
-    // Si es una URL de 4chan, la envolvemos con un proxy específico
     if (targetUrl.includes('4cdn.org')) {
-        urlToUse = "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
-        inicio = 0; // Forzamos usar el proxy directo (índice 0) que ahora es el proxy de codetabs
+        // Iteramos sobre la lista específica de proxies para 4chan
+        for (let proxyUrl of FOURCHAN_PROXIES) {
+            const urlToUse = proxyUrl + encodeURIComponent(targetUrl);
+            try {
+                const res = await fetch(urlToUse);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const txt = await res.text();
+                if (!txt) throw new Error("Vacío");
+
+                if (txt.trim().startsWith('<')) return txt;
+                return JSON.parse(txt);
+            } catch (e) {
+                console.warn(`Proxy 4chan fallido: ${proxyUrl}`, e.message);
+                // Continúa al siguiente proxy en la lista
+                continue;
+            }
+        }
+        // Si llegamos aquí, todos los proxies de FOURCHAN_PROXIES fallaron
+        throw new Error("Error de Conexión (Todos los proxies específicos para 4chan fallaron)");
     }
 
     for (let i = inicio; i < PROXIES.length; i++) {
