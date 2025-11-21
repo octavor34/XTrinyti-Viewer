@@ -94,3 +94,33 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 @keyframes slideInRight { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
 
 .admin-header { background:#1a1a1a; padding:10px 15px; border-bottom:1px solid #333; display:flex; justify-content:space-between; font-weight:bold; font-size:0.8rem; color:#666; }
+/* Estilos para los botones de elección en 4chan */
+.chan-choices {
+    position: absolute; 
+    bottom: 10px; 
+    left: 0; 
+    width: 100%; 
+    display: flex; 
+    justify-content: center; 
+    gap: 15px; /* Separación entre botones */
+    z-index: 50; /* Por encima de todo */
+}
+
+.btn-choice {
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    border: 1px solid #444;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    pointer-events: auto; /* IMPORTANTE: Esto habilita el click */
+    backdrop-filter: blur(5px);
+    transition: transform 0.1s, background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-choice:active { transform: scale(0.95); background: #333; }

@@ -433,19 +433,25 @@ function renderHilo4Chan(t) {
     const card = document.createElement('div'); 
     card.className = 'tarjeta thread-card';
     
-    // AQUI ESTÁ LA MAGIA DE LOS DOS BOTONES
+    // Nota: Quitamos el onclick global de la card para evitar conflictos,
+    // o lo dejamos solo para el comportamiento por defecto (Media).
+    // Aquí lo dejo para que si tocas la imagen (fuera de los botones) abra Media por defecto.
+    card.onclick = () => cargarHiloCompleto(t.no, 'media'); 
+
     card.innerHTML = `
-        <div class="media-wrapper" style="min-height:150px;">
+        <div class="media-wrapper" style="min-height:150px; position:relative;">
             <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:contain;height:200px;">
-            <div style="position:absolute; bottom:10px; display:flex; gap:10px; justify-content:center; width:100%;">
-                <button class="overlay-btn" onclick="cargarHiloCompleto(${t.no}, 'media')" style="cursor:pointer; background:rgba(0,0,0,0.8); border-color:#00ffaa;">
+            
+            <div class="chan-choices">
+                <button class="btn-choice" onclick="event.stopPropagation(); cargarHiloCompleto(${t.no}, 'media')" style="border-color:#00ffaa;">
                     📷 MEDIA
                 </button>
-                <button class="overlay-btn" onclick="cargarHiloCompleto(${t.no}, 'all')" style="cursor:pointer; background:rgba(0,0,0,0.8); border-color:#ffaa00;">
-                    📷+💬
+                <button class="btn-choice" onclick="event.stopPropagation(); cargarHiloCompleto(${t.no}, 'all')" style="border-color:#ffaa00;">
+                    💬 CHAT
                 </button>
             </div>
         </div>
+        
         <div class="thread-header">
             <span class="badge bg-chan">/${boardActual}/</span> 
             <span style="color:#aaa; font-size:0.8rem">#${t.no}</span>
