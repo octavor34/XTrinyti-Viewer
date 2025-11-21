@@ -134,14 +134,8 @@ async function fetchSmart(targetUrl) {
     let inicio = 0;
 
     // Reddit SIEMPRE directo
-<<<<<<< HEAD
     if (targetUrl.includes('4cdn.org') || targetUrl.includes('nitter') || targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
-=======
-    if (targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
-        inicio = 0;
-    } 
-    else if (targetUrl.includes('4cdn.org') || targetUrl.includes('nitter')) {
->>>>>>> f2b5da6c3a4bda6e217141fb4002229ce78d5bed
+    f2b5da6c3a4bda6e217141fb4002229ce78d5bed
         inicio = 1;
     }
 
@@ -241,12 +235,7 @@ async function cargarPaginaReddit() {
     let url = `https://i.reddit.com/r/${sub}/hot.json?limit=20`;
     if(redditAfter) url += `&after=${redditAfter}`;
     try {
-<<<<<<< HEAD
         const data = await fetchSmart(url);  
-=======
-        const res = await fetch(url);
-        const data = await res.json();  
->>>>>>> f2b5da6c3a4bda6e217141fb4002229ce78d5bed
         document.getElementById('loading-status').style.display = 'none';
         document.getElementById('centinela-scroll').style.display = 'flex';
         const posts = data.data.children;
