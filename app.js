@@ -133,10 +133,12 @@ function detectType(url) {
 async function fetchSmart(targetUrl) {
     let inicio = 0;
 
-    // Reddit SIEMPRE directo
-    if (targetUrl.includes('4cdn.org') || targetUrl.includes('nitter') || targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
-        inicio = 1;
+   // Reddit SIEMPRE directo (inicio en 1)
+   if (targetUrl.includes('nitter') || targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
+    inicio = 1;
     }
+
+    // --- CORRECCIÓN CENTRALIZADA PARA 4CHAN ---
     let urlToUse = targetUrl;
     // Si es una URL de 4chan, la envolvemos con un proxy específico
     if (targetUrl.includes('4cdn.org')) {
@@ -285,9 +287,6 @@ async function cargarCatalogo4Chan() {
     document.getElementById('centinela-scroll').style.display = 'none'; 
 
     const originalUrl = `https://a.4cdn.org/${boardActual}/catalog.json`;
-    // --- CORREGIDO ---
-    const url = FOURCHAN_PROXY + encodeURIComponent(originalUrl);
-    // ---
     try {
         const pages = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
@@ -347,9 +346,6 @@ scrollCatalogPos = window.scrollY || window.pageYOffset || document.documentElem
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('nav-chan').style.display = 'block';
     const originalUrl = `https://a.4cdn.org/${boardActual}/thread/${threadId}.json`;
-    // --- CORREGIDO ---
-    const url = FOURCHAN_PROXY + encodeURIComponent(originalUrl);
-    // ---
     try {
         const data = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
