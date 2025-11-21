@@ -74,7 +74,16 @@
             <button class="btn-action" style="background:#000; border:1px solid #333" onclick="ejecutarBusquedaX()">BUSCAR EN X</button>
         </div>
 
-        <button id="btn-clear-log" onclick="clearDebugLog()" style="display:none; position:fixed; top:50px; right:10px; z-index:9999; padding: 5px 10px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; font-size: 12px;">Limpiar Log</button>
+        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+    
+        <label class="lbl-title">Diagnóstico:</label>
+        <button id="btn-toggle-debug" class="btn-action" style="background: #222; border: 1px solid #444; margin-bottom: 10px;" onclick="toggleDebugMode()">
+            🐞 ACTIVAR DEBUG
+        </button>
+        
+        <button class="btn-action" style="background: #220000; color: #ff5555; border: 1px solid #440000;" onclick="clearDebugLog()">
+            🗑️ LIMPIAR CONSOLA
+        </button>
     </div>
 
     <div id="nav-chan">

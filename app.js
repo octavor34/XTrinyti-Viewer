@@ -1,53 +1,63 @@
-// --- GLOBAL ERROR CATCHER ---
-window.onerror = function(msg, url, line) {
+// --- SISTEMA DE DEBUG MEJORADO (NUEVO) ---
+let debugEnabled = localStorage.getItem('sys_debug_mode') === 'true';
+
+function initDebugSystem() {
     const consoleDiv = document.getElementById('debug-console');
     if (consoleDiv) {
-        consoleDiv.style.display = 'block';
-        consoleDiv.innerText += `ERR: ${msg} @ L${line}\n`;
+        consoleDiv.style.display = debugEnabled ? 'block' : 'none';
     }
+    updateDebugButtonUI();
+}
+
+function toggleDebugMode() {
+    debugEnabled = !debugEnabled;
+    localStorage.setItem('sys_debug_mode', debugEnabled);
+    
+    const consoleDiv = document.getElementById('debug-console');
+    if (consoleDiv) consoleDiv.style.display = debugEnabled ? 'block' : 'none';
+    
+    updateDebugButtonUI();
+    
+    if(debugEnabled) logDebug("Sistema de depuración: ACTIVADO");
+}
+
+function updateDebugButtonUI() {
+    const btn = document.getElementById('btn-toggle-debug');
+    if (!btn) return;
+    
+    if (debugEnabled) {
+        btn.innerHTML = "✅ DEBUG ACTIVO";
+        btn.style.background = "#064e3b"; 
+        btn.style.borderColor = "#34d399";
+        btn.style.color = "#fff";
+    } else {
+        btn.innerHTML = "🐞 ACTIVAR DEBUG";
+        btn.style.background = "#222";
+        btn.style.borderColor = "#444";
+        btn.style.color = "#888";
+    }
+}
+
+window.onerror = function(msg, url, line) {
+    logDebug(`CRITICAL ERROR: ${msg} @ L${line}`);
 };
 
-// Función para añadir mensajes al panel de debug (más robusta)
 function logDebug(message) {
-    // Intenta obtener el elemento
     let consoleDiv = document.getElementById('debug-console');
+    if (!consoleDiv) return;
 
-    // Si no lo encuentra, puede que el DOM aún no esté completamente cargado
-    // o que haya un error previo. Creamos uno temporal si no existe.
-    if (!consoleDiv) {
-        // Opcional: Crear el div si no existe (esto es un respaldo)
-        // consoleDiv = document.createElement('div');
-        // consoleDiv.id = 'debug-console';
-        // document.body.appendChild(consoleDiv);
-        // console.error("logDebug: No se encontró #debug-console en el HTML. Mensaje perdido:", message);
-        // return; // Si no lo encuentra, no hace nada más.
-
-        // Opción más segura: Intentar encontrarlo de nuevo, o usar console.log como fallback
-        consoleDiv = document.getElementById('debug-console');
-        if (!consoleDiv) {
-             // Si aún no lo encuentra, usa la consola del navegador como respaldo
-             // (Esto solo se vería si pudieras abrir DevTools, pero puede ayudar en errores de carga)
-             console.warn("[LOG DEBUG FALLBACK - No #debug-console]:", message);
-             return; // Salir si no puede encontrar el div
-        }
-    }
-
-    // Si lo encuentra, procede normalmente
-    // Mostrar el panel si está oculto
-    consoleDiv.style.display = 'block';
-    // Añadir el mensaje con timestamp
-    const timestamp = new Date().toISOString().substr(11, 12); // HH:MM:SS.mmm
-    consoleDiv.innerText += `[${timestamp}] ${message}\n`;
-    // Auto-scroll al final
+    // Solo mostramos visualmente si está activo, pero SIEMPRE escribimos en el HTML por si acaso
+    const timestamp = new Date().toISOString().substr(11, 8); 
+    consoleDiv.insertAdjacentHTML('beforeend', `<div style="border-bottom:1px solid #220000; padding:2px;">
+        <span style="color:#555">[${timestamp}]</span> ${message}
+    </div>`);
+    
     consoleDiv.scrollTop = consoleDiv.scrollHeight;
 }
 
-// Función para limpiar el panel de debug
 function clearDebugLog() {
     const consoleDiv = document.getElementById('debug-console');
-    if (consoleDiv) {
-        consoleDiv.innerText = '';
-    }
+    if (consoleDiv) consoleDiv.innerHTML = '<div style="color:#444">--- Log Limpiado ---</div>';
 }
 
 // --- ESTADO GLOBAL ---
@@ -917,5 +927,6 @@ logDebug("app.js: Cargado y funciones definidas.");
 
 // INIT
 window.onload = function() {
+    initDebugSystem(); // <--- ESTA LÍNEA ES LA IMPORTANTE
     document.getElementById('r34-inputs').style.display = 'block';
 };
