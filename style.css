@@ -32,7 +32,7 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 .tarjeta.thread-card { cursor: pointer; border: 1px solid #333; }
 .thread-header { padding: 10px 15px; background: #151515; border-top: 1px solid #222; }
 .thread-title { font-size: 0.95rem; font-weight: bold; color: #fff; display: block; margin-bottom: 4px; }
-.thread-desc { font-size: 0.8rem; color: #aaa; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.thread-desc { font-size: 0.8rem; color: #aaa; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
 .media-wrapper { position: relative; width: 100%; min-height: 300px; background: #080808; display: flex; justify-content: center; align-items: center; cursor: pointer; }
 .media-content { width: 100%; height: auto; display: block; max-height: 85vh; object-fit: cover; }
