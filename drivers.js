@@ -16,5 +16,5 @@ const PROXIES = [
 ];
 
 // --- AÑADIR ESTA NUEVA CONSTANTE ---
-const FOURCHAN_PROXY = "https://api.allorigins.win/raw?url=";
+const FOURCHAN_PROXY = "https://api.codetabs.com/v1/proxy/?quest=";
 // --- FIN DE LO AÑADIDO ---
