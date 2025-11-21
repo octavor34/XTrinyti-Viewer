@@ -135,7 +135,14 @@ async function fetchSmart(targetUrl) {
 
     // Reddit SIEMPRE directo
     if (targetUrl.includes('4cdn.org') || targetUrl.includes('nitter') || targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
-        inicio = 0;
+        inicio = 1;
+    }
+    
+    let urlToUse = targetUrl;
+    // Si es una URL de 4chan, la envolvemos con un proxy específico
+    if (targetUrl.includes('4cdn.org')) {
+        urlToUse = "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(targetUrl);
+        inicio = 0; // Forzamos usar el proxy directo (índice 0) que ahora es el proxy de codetabs
     }
 
     for (let i = inicio; i < PROXIES.length; i++) {
