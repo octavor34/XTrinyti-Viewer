@@ -346,6 +346,17 @@ function processRedditPost(p) {
 let threadFilterMode = 'all'; 
 let threadViewMode = 'media'; // 'media' o 'all' (con texto)
 
+function accionChanPrincipal() {
+    if (modoActual === 'chan_catalog') {
+        cargarCatalogo4Chan();
+    } else if (modoActual === 'chan_thread') {
+        filtrarHiloEnVivo();
+    } else {
+        // Fallback por si acaso
+        cargarCatalogo4Chan();
+    }
+}
+
 async function cargarCatalogo4Chan() {
     modoActual = 'chan_catalog';
     boardActual = document.getElementById('board-selector').value;
