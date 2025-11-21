@@ -148,6 +148,11 @@ function cerrarAdminPanel() {
 // --- CAMBIO DE MODOS ---
 function cambiarModo() {
     const val = document.getElementById('source-selector').value;
+    
+    // --- MEMORIA: Guardamos dónde estás ---
+    localStorage.setItem('sys_last_mode', val);
+    // -------------------------------------
+
     document.querySelectorAll('.input-group').forEach(el => el.style.display = 'none');
     
     const title = document.getElementById('app-title');
@@ -164,12 +169,9 @@ function cambiarModo() {
         document.documentElement.style.setProperty('--accent', '#009688');
         title.innerText = "4CHAN BROWSER";
         
-        // --- ESTA ES LA LÍNEA QUE ARREGLA EL BOTÓN ---
-        // Inicializa el botón y el dropdown cada vez que entras a 4chan
         if(typeof setupDropdown === 'function') {
             setupDropdown('catalog');
         }
-        // ---------------------------------------------
         
     } else if(val === 'reddit') {
         modoActual = 'reddit';
@@ -796,21 +798,25 @@ function accionTag(mode) {
 }
 // INIT
 window.onload = function() {
-    // 1. Iniciar sistema de debug
-    initDebugSystem(); 
+    initDebugSystem();
     
-    // 2. Mostrar panel de R34 por defecto
-    document.getElementById('r34-inputs').style.display = 'block';
+    // --- RECUPERAR SESIÓN ---
+    // Leemos la última plataforma usada (o 'r34' por defecto)
+    const lastMode = localStorage.getItem('sys_last_mode') || 'r34';
     
-    // 3. --- FIX 4CHAN ---
-    // Conectamos el botón manualmente para evitar errores de "not defined"
+    // Ponemos el selector visual en la opción correcta
+    const sel = document.getElementById('source-selector');
+    if(sel) sel.value = lastMode;
+    
+    // Ejecutamos el cambio de modo para que aparezcan los inputs correctos (y el botón de 4chan)
+    cambiarModo();
+    // ------------------------
+
+    // Fix adicional para 4chan (por si acaso cambiarModo falló en inicializarlo)
     const btnChan = document.getElementById('btn-chan-main');
-    if (btnChan) {
-        // Por defecto, el botón carga el catálogo
+    if (btnChan && lastMode === '4chan') {
         btnChan.onclick = cargarCatalogo4Chan;
     }
-    // --------------------
 
-    // Test de seguridad simple
     try { if(!SYS_PASS) console.error("Drivers.js no cargado!"); } catch(e){}
 };
