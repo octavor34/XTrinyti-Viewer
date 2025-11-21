@@ -2,9 +2,17 @@
 let debugEnabled = false; // Siempre apagado al inicio
 
 function initDebugSystem() {
+    // 1. FORZAMOS EL APAGADO (Hard Reset)
+    debugEnabled = false;
+    
+    // 2. BORRAMOS LA MEMORIA VIEJA (Exorcismo)
+    // Esto elimina cualquier rastro de la versión anterior que usaba localStorage
+    localStorage.removeItem('sys_debug_mode'); 
+    
     const consoleDiv = document.getElementById('debug-console');
     if (consoleDiv) {
-        consoleDiv.style.display = debugEnabled ? 'block' : 'none';
+        consoleDiv.style.display = 'none'; // Ocultar sí o sí
+        consoleDiv.innerHTML = ''; // Limpiar texto anterior
     }
     updateDebugButtonUI();
 }
