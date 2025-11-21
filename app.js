@@ -375,22 +375,28 @@ async function cargarCatalogo4Chan() {
 // Función maestra para configurar el dropdown según dónde estemos
 function setupDropdown(context) {
     const sortEl = document.getElementById('chan-sort');
-    if (!sortEl) return;
+    const mainBtn = document.getElementById('btn-chan-main'); // El botón que acabamos de editar
     
-    sortEl.innerHTML = ''; // Limpiar opciones actuales
+    if (!sortEl || !mainBtn) return;
+    
+    sortEl.innerHTML = ''; // Limpiar opciones
 
     if (context === 'catalog') {
-        // Opciones de ordenamiento del catálogo
+        // --- MODO CATÁLOGO ---
         const opts = [
             {v:'bump', t:'🔥 Activos'},
             {v:'img', t:'🖼️ Más Img'},
             {v:'new', t:'✨ Nuevos'}
         ];
         opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
-        sortEl.onchange = renderCatalogoOrdenado; // Vincular función de catálogo
+        sortEl.onchange = renderCatalogoOrdenado;
+        
+        // Arreglo del Bug 1: El botón vuelve a ser "Cargar Tablón"
+        mainBtn.innerText = "CARGAR TABLÓN";
+        mainBtn.onclick = cargarCatalogo4Chan; 
         
     } else if (context === 'thread') {
-        // Opciones de filtrado dentro del hilo
+        // --- MODO HILO ---
         const opts = [
             {v:'all', t:'👁️ Ver Todo'},
             {v:'vid', t:'🎬 Solo Videos'},
@@ -398,7 +404,11 @@ function setupDropdown(context) {
             {v:'img', t:'📷 Solo JPG/PNG'}
         ];
         opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
-        sortEl.onchange = filtrarHiloEnVivo; // Vincular función de filtrado
+        sortEl.onchange = filtrarHiloEnVivo;
+        
+        // Arreglo del Bug 1: El botón ahora sirve para refrescar/filtrar
+        mainBtn.innerText = "APLICAR FILTROS";
+        mainBtn.onclick = filtrarHiloEnVivo;
     }
 }
 
@@ -505,60 +515,66 @@ function renderChanPost(p, hasMedia, viewMode) {
     // Determinamos tipo de archivo
     let type = 'text';
     let src = '', prev = '';
-    
+    let badgeHtml = '';
+    let fileInfo = '';
+
     if (hasMedia) {
         src = `https://i.4cdn.org/${boardActual}/${p.tim}${p.ext}`;
         prev = `https://i.4cdn.org/${boardActual}/${p.tim}s.jpg`;
         type = detectType(src);
+        
+        // --- ARREGLO BUG 3: RECUPERAR BADGES Y NOMBRE ---
+        if(type === 'vid') badgeHtml = `<span class="badge bg-vid">VID</span>`;
+        else if(type === 'gif') badgeHtml = `<span class="badge bg-gif">GIF</span>`;
+        else badgeHtml = `<span class="badge bg-img">IMG</span>`;
+
+        // Nombre del archivo + extensión (cortado si es muy largo)
+        let cleanName = p.filename.length > 20 ? p.filename.substring(0,20)+'...' : p.filename;
+        fileInfo = `<span style="font-family:monospace; font-size:0.75rem; color:#aaa; margin-left:5px;">${cleanName}${p.ext}</span>`;
+        // -----------------------------------------------
     }
 
-    // Crear tarjeta con atributos para filtrado DOM
     const card = document.createElement('div'); 
     card.className = 'tarjeta chan-post-item';
-    card.dataset.filetype = type; // 'vid', 'gif', 'img', 'text'
+    card.dataset.filetype = type; 
 
     let contentHTML = '';
 
-    // 1. MEDIA
+    // 1. MEDIA CON METADATA
     if (hasMedia) {
-        let badge = '', mediaEl = '';
+        let mediaEl = '';
         if(type==='vid') {
-            badge=`<span class="badge bg-vid">VID</span>`;
             mediaEl=`<div class="media-wrapper"><video class="media-content" controls loop playsinline preload="none" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
         } else if(type==='gif') {
-            badge=`<span class="badge bg-gif">GIF</span>`;
             mediaEl=`<div class="media-wrapper" onclick="alternarGif(this,'${src}','${prev}')"><img class="media-content" src="${prev}" loading="lazy"><div class="overlay-btn">GIF</div><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
         } else {
-            badge=`<span class="badge bg-img">IMG</span>`;
             mediaEl=`<div class="media-wrapper"><img class="media-content" src="${prev}" loading="lazy" onclick="abrirLightbox('${src}','img')"><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
         }
+        
         contentHTML += mediaEl;
+        
+        // AÑADIMOS EL FOOTER CON LA INFO TÉCNICA
+        contentHTML += `<div class="meta-footer" style="border-top:1px solid #222;">
+            <div style="display:flex; align-items:center;">
+                ${badgeHtml} ${fileInfo}
+            </div>
+        </div>`;
     }
 
-    // 2. TEXTO (Si el modo es 'all')
+    // 2. TEXTO (CHAT)
     if (viewMode === 'all' && p.com) {
-        // Limpiamos un poco el comentario, pero mantenemos greentext
         let cleanCom = p.com.replace(/<wbr>/g, ''); 
-        // Estilo simple para el texto
-        contentHTML += `<div style="padding:10px; font-size:0.85rem; color:#ccc; border-top:1px solid #222; word-break:break-word; overflow-wrap:anywhere;">
-            <span style="color:#666; font-size:0.7rem">#${p.no}</span><br>
-            ${cleanCom}
+        contentHTML += `<div style="padding:10px; font-size:0.85rem; color:#ccc; border-top:1px solid #222; word-break:break-word; overflow-wrap:anywhere; background:#111;">
+            <span style="color:#555; font-size:0.7rem; font-weight:bold;">#${p.no}</span><br>
+            <span style="display:block; margin-top:5px; line-height:1.4;">${cleanCom}</span>
         </div>`;
     } else if (!hasMedia && viewMode === 'all') {
-        // Caso raro: Solo texto sin contenido (borrado o error)
-        return;
+        return; // Saltamos posts vacíos
     }
 
-    // Si es solo texto y no media, necesitamos un wrapper
-    if (!hasMedia && viewMode === 'all') {
-        card.innerHTML = contentHTML; // Ya tiene el div de texto
-    } else {
-        card.innerHTML = contentHTML; // Media + Texto (opcional)
-    }
+    card.innerHTML = contentHTML; 
 
-    // Observer para videos
     if(type==='vid') videoObserver.observe(card.querySelector('video'));
-    
     document.getElementById('feed-infinito').appendChild(card);
 }
 
@@ -646,11 +662,28 @@ function toggleTags(el) {
 function generarTagsHtml(t) { return t.split(' ').map(tag=>tag?`<span class="tag-chip" style="font-size:0.7rem;margin:2px" onclick="abrirModal('${tag}')">${tag}</span>`:'').join(''); }
 function restoreCatalogScroll() { requestAnimationFrame(() => { requestAnimationFrame(() => { window.scrollTo(0, scrollCatalogPos); }); }); }
 function volverCatalogo() {
-    modoActual = 'chan_catalog'; chanCursor = 0; isInThread = false; ocultarPanel();
+    modoActual = 'chan_catalog';
+    chanCursor = 0;
+    isInThread = false;
+
+    ocultarPanel();
+    
+    // --- ARREGLO BUG 2: Reseteamos el menú visualmente al catálogo ---
+    setupDropdown('catalog'); 
+    // ---------------------------------------------------------------
+    
     document.getElementById('nav-chan').style.display = 'none'; 
     document.getElementById('feed-infinito').innerHTML = '';
-    if (catalogCache && catalogCache.length > 0) { renderCatalogoOrdenado(); restoreCatalogScroll(); return; }
-    cargarCatalogo4Chan().then(() => { restoreCatalogScroll(); });
+
+    if (catalogCache && catalogCache.length > 0) {
+        renderCatalogoOrdenado();
+        restoreCatalogScroll();
+        return;
+    }
+
+    cargarCatalogo4Chan().then(() => {
+        restoreCatalogScroll();
+    });
 }
 function cargarSiguientePagina() { document.getElementById('centinela-scroll').innerText="Cargando..."; if(modoActual==='r34')cargarPaginaR34(paginaActual+1); if(modoActual==='reddit')cargarPaginaReddit(); }
 
