@@ -306,6 +306,7 @@ async function cargarCatalogo4Chan() {
     document.getElementById('centinela-scroll').style.display = 'none'; 
 
     const originalUrl = `https://a.4cdn.org/${boardActual}/catalog.json`;
+    const url = originalUrl;
     try {
         const pages = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
@@ -365,6 +366,7 @@ scrollCatalogPos = window.scrollY || window.pageYOffset || document.documentElem
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('nav-chan').style.display = 'block';
     const originalUrl = `https://a.4cdn.org/${boardActual}/thread/${threadId}.json`;
+    const url = originalUrl;
     try {
         const data = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
