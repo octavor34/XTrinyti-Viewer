@@ -142,7 +142,7 @@ async function fetchSmart(targetUrl) {
     let urlToUse = targetUrl;
     // Si es una URL de 4chan, la envolvemos con un proxy específico
     if (targetUrl.includes('4cdn.org')) {
-        urlToUse = "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(targetUrl);
+        urlToUse = "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
         inicio = 0; // Forzamos usar el proxy directo (índice 0) que ahora es el proxy de codetabs
     }
 
