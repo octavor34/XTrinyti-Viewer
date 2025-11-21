@@ -14,7 +14,10 @@
 
     <header>
         <h1 id="app-title">UNIVERSAL VIEWER</h1>
-        <button class="btn-icon" onclick="toggleMenu()">⚙️</button>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-icon" onclick="abrirAdminLogin()">🔒</button>
+            <button class="btn-icon" onclick="toggleMenu()">⚙️</button>
+        </div>
     </header>
 
     <div id="panel-control">
@@ -73,17 +76,6 @@
             <input type="text" id="x-search" placeholder="Ej: elonmusk o #art">
             <button class="btn-action" style="background:#000; border:1px solid #333" onclick="ejecutarBusquedaX()">BUSCAR EN X</button>
         </div>
-
-        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
-    
-        <label class="lbl-title">Diagnóstico:</label>
-        <button id="btn-toggle-debug" class="btn-action" style="background: #222; border: 1px solid #444; margin-bottom: 10px;" onclick="toggleDebugMode()">
-            🐞 ACTIVAR DEBUG
-        </button>
-        
-        <button class="btn-action" style="background: #220000; color: #ff5555; border: 1px solid #440000;" onclick="clearDebugLog()">
-            🗑️ LIMPIAR CONSOLA
-        </button>
     </div>
 
     <div id="nav-chan">
@@ -114,7 +106,33 @@
     </div>
 
     <div id="debug-console"></div>
+    <div id="modal-admin-login" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <h3>ACCESO RESTRINGIDO</h3>
+            <input type="password" id="admin-pass-input" placeholder="Contraseña..." onkeydown="if(event.key==='Enter') checkAdminPass()">
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn-action" onclick="checkAdminPass()">ENTRAR</button>
+                <button class="btn-back" onclick="document.getElementById('modal-admin-login').style.display='none'">CANCELAR</button>
+            </div>
+        </div>
+    </div>
 
+    <div id="panel-admin" style="display:none;">
+        <div class="admin-header">
+            <span>PANEL SYSTEM</span>
+            <button onclick="cerrarAdminPanel()" style="background:none;border:none;color:#fff;">✕</button>
+        </div>
+        <div style="padding:15px;">
+            <label class="lbl-title">Diagnóstico y Control:</label>
+            <button id="btn-toggle-debug" class="btn-action" style="margin-bottom: 10px;" onclick="toggleDebugMode()">
+                🐞 ACTIVAR DEBUG
+            </button>
+            <button class="btn-action" style="background: #220000; color: #ff5555; border: 1px solid #440000;" onclick="clearDebugLog()">
+                🗑️ LIMPIAR CONSOLA
+            </button>
+        </div>
+    </div>
+    
     <script src="drivers.js"></script>
     <script src="app.js"></script>
 </body>

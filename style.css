@@ -80,3 +80,17 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
     z-index: 1800; /* AQUÍ ESTÁ LA CLAVE: Menor que el panel */
     display: none;
 }
+/* ADMIN STYLES */
+.modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:6000; display:flex; justify-content:center; align-items:center; backdrop-filter:blur(5px); }
+.modal-box { background:#111; padding:25px; border:1px solid #333; border-radius:10px; width:300px; text-align:center; box-shadow:0 0 20px rgba(0,255,0,0.1); }
+.modal-box h3 { color:#fff; margin-top:0; font-size:0.9rem; letter-spacing:2px; }
+
+#panel-admin {
+    position: fixed; top: 60px; right: 10px; width: 280px;
+    background: #0a0a0a; border: 1px solid #333; border-radius: 10px;
+    z-index: 5500; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    animation: slideInRight 0.3s ease;
+}
+@keyframes slideInRight { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+
+.admin-header { background:#1a1a1a; padding:10px 15px; border-bottom:1px solid #333; display:flex; justify-content:space-between; font-weight:bold; font-size:0.8rem; color:#666; }

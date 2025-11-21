@@ -181,6 +181,41 @@ function detectType(url) {
     return "img";
 }
 
+// --- ADMIN SYSTEM ---
+function abrirAdminLogin() {
+    // Si ya está abierto el panel, lo cerramos
+    const panel = document.getElementById('panel-admin');
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        return;
+    }
+    // Si no, pedimos pass
+    document.getElementById('modal-admin-login').style.display = 'flex';
+    setTimeout(()=>document.getElementById('admin-pass-input').focus(), 100);
+}
+
+function checkAdminPass() {
+    const input = document.getElementById('admin-pass-input');
+    const val = input.value;
+    
+    if (val === SYS_PASS) {
+        // Éxito
+        document.getElementById('modal-admin-login').style.display = 'none';
+        document.getElementById('panel-admin').style.display = 'block';
+        input.value = ''; // Limpiar seguridad
+        logDebug("Acceso Admin concedido.");
+    } else {
+        // Fallo
+        alert("ACCESO DENEGADO");
+        input.value = '';
+        logDebug("Intento fallido de acceso admin.");
+    }
+}
+
+function cerrarAdminPanel() {
+    document.getElementById('panel-admin').style.display = 'none';
+}
+
 // --- NETWORK ENGINE ---
 // Requiere que PROXIES esté definido en drivers.js
 async function fetchSmart(targetUrl) {
@@ -300,8 +335,12 @@ function buscarR34() { ejecutarBusqueda(); }
 async function cargarPaginaR34(pageNum) {
     if (cargando) return; cargando = true;
     const tags = misTags.join(' ') || document.getElementById('input-tags-real').value.trim();
-    // R34_UID y R34_KEY deben estar en drivers.js
-    const url = `https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&limit=10&pid=${pageNum}&tags=${encodeURIComponent(tags)}&user_id=${R34_UID}&api_key=${R34_KEY}`;
+    
+    // --- CAMBIO DE SEGURIDAD: OBTENER CREDENCIALES AL VUELO ---
+    const creds = getKeys(); // Función definida en drivers.js
+    const url = `https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&limit=10&pid=${pageNum}&tags=${encodeURIComponent(tags)}&user_id=${creds.uid}&api_key=${creds.key}`;
+    // -----------------------------------------------------------
+
     try {
         const data = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
@@ -312,6 +351,7 @@ async function cargarPaginaR34(pageNum) {
         document.getElementById('centinela-scroll').innerText="...";
     } catch(e) { document.getElementById('loading-status').innerText = e.message; } finally { cargando=false; }
 }
+
 function renderTarjetaR34(item) {
     const src = item.file_url; let prev = item.sample_url || item.preview_url || src; const type = detectType(src);
     if(type==='gif' && prev.includes('.gif')) prev = item.preview_url || prev;

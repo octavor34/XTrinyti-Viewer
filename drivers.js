@@ -1,16 +1,17 @@
-// CONFIGURACIÓN Y CONSTANTES
-const R34_KEY = '074ca99691c79e1751d29e275d862f8ae05739b37665c44f7cdca24c206176bf98b3f6f5ca2d7c60e931baa5cf5e7c7b83db1214d55320433a9d9ff33acee49d';
-const R34_UID = '5604796';
+// CONFIGURACIÓN DE SEGURIDAD
+// Contraseña para el menú de debug (Cámbiala por la que quieras)
+const SYS_PASS = "admin123"; 
 
+// CREDENCIALES OFUSCADAS (Base64)
+// Esto evita que se lean a simple vista, pero no es seguridad militar.
+const _K_ENC = 'MDc0Y2E5OTY5MWM3OWUxNzUxZDI5ZTI3NWQ4NjJmOGFlMDU3MzliMzc2NjVjNDRmN2NkY2EyNGMyMDYxNzZiZjk4YjNmNmY1Y2EyZDdjNjBlOTMxYmFhNWNmNWU3YzdiODNkYjEyMTRkNTUzMjA0MzNhOWQ5ZmYzM2FjZWU0OWQ=';
+const _U_ENC = 'NTYwNDc5Ng==';
+
+// PROXIES
 const PROXIES = [
-    // Intento directo (a veces funciona si el usuario tiene extensiones o configuración permisiva)
     { url: '', type: 'direct' },
-
-    // El MVP actual (funciona para Reddit casi siempre)
     { url: 'https://corsproxy.io/?', type: 'light' },
-
-    // Alternativas decentes
-    { url: 'https://api.allorigins.win/get?url=', type: 'special_unpack' }, // Requiere lógica especial
+    { url: 'https://api.allorigins.win/get?url=', type: 'special_unpack' },
     { url: 'https://api.codetabs.com/v1/proxy/?quest=', type: 'light' }
 ];
 
@@ -19,3 +20,15 @@ const FOURCHAN_PROXIES = [
     "https://api.allorigins.win/raw?url="
 ];
 
+// Función de desofuscación (Solo para uso interno)
+function getKeys() {
+    try {
+        return {
+            uid: atob(_U_ENC),
+            key: atob(_K_ENC)
+        };
+    } catch (e) {
+        console.error("Error desencriptando credenciales");
+        return { uid: '', key: '' };
+    }
+}
