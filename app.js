@@ -775,8 +775,21 @@ function accionTag(mode) {
 }
 // INIT
 window.onload = function() {
-    initDebugSystem();
+    // 1. Iniciar sistema de debug
+    initDebugSystem(); 
+    
+    // 2. Mostrar panel de R34 por defecto
     document.getElementById('r34-inputs').style.display = 'block';
-    // Test simple para ver si drivers.js cargó
+    
+    // 3. --- FIX 4CHAN ---
+    // Conectamos el botón manualmente para evitar errores de "not defined"
+    const btnChan = document.getElementById('btn-chan-main');
+    if (btnChan) {
+        // Por defecto, el botón carga el catálogo
+        btnChan.onclick = cargarCatalogo4Chan;
+    }
+    // --------------------
+
+    // Test de seguridad simple
     try { if(!SYS_PASS) console.error("Drivers.js no cargado!"); } catch(e){}
 };
