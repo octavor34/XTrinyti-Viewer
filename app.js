@@ -186,10 +186,8 @@ function detectType(url) {
 async function fetchSmart(targetUrl) {
     let lastError = null;
 
-   if (targetUrl.includes('nitter')) {
-    inicio = 1;
-    }
-    
+    // Eliminado el bloque de 'nitter' con la variable 'inicio' que causaba errores
+
     if (targetUrl.includes('4cdn.org')) {
         // Iteramos sobre la lista específica de proxies para 4chan
         for (let proxyUrl of FOURCHAN_PROXIES) {
@@ -344,13 +342,11 @@ async function cargarPaginaReddit() {
     try {
         const data = await fetchSmart(url);
         
-        // --- AQUÍ ESTABA TU ERROR MORTAL ---
         // Validamos que data exista y tenga la estructura sagrada antes de tocarla
         if (!data || !data.data || !Array.isArray(data.data.children)) {
             console.error("Estructura inválida recibida:", data);
             throw new Error("Reddit devolvió basura o te ha bloqueado (Rate Limit 429).");
         }
-        // -----------------------------------
 
         logDebug("Datos válidos recibidos.");
         document.getElementById('loading-status').style.display = 'none';
@@ -927,6 +923,6 @@ logDebug("app.js: Cargado y funciones definidas.");
 
 // INIT
 window.onload = function() {
-    initDebugSystem(); // <--- ESTA LÍNEA ES LA IMPORTANTE
+    initDebugSystem();
     document.getElementById('r34-inputs').style.display = 'block';
 };
