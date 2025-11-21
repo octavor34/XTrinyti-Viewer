@@ -1,63 +1,11 @@
-// --- SISTEMA DE DEBUG (VOLÁTIL) ---
-let debugEnabled = false; // Siempre apagado al inicio
-
-function initDebugSystem() {
-    // 1. FORZAMOS EL APAGADO (Hard Reset)
-    debugEnabled = false;
-    
-    // 2. BORRAMOS LA MEMORIA VIEJA (Exorcismo)
-    // Esto elimina cualquier rastro de la versión anterior que usaba localStorage
-    localStorage.removeItem('sys_debug_mode'); 
-    
-    const consoleDiv = document.getElementById('debug-console');
-    if (consoleDiv) {
-        consoleDiv.style.display = 'none'; // Ocultar sí o sí
-        consoleDiv.innerHTML = ''; // Limpiar texto anterior
-    }
-    updateDebugButtonUI();
-}
-
-function toggleDebugMode() {
-    debugEnabled = !debugEnabled;
-    const consoleDiv = document.getElementById('debug-console');
-    if (consoleDiv) consoleDiv.style.display = debugEnabled ? 'block' : 'none';
-    updateDebugButtonUI();
-    if(debugEnabled) logDebug("Sistema de depuración: ACTIVADO (Sesión Temporal)");
-}
-
-function updateDebugButtonUI() {
-    const btn = document.getElementById('btn-toggle-debug');
-    if (!btn) return;
-    if (debugEnabled) {
-        btn.innerHTML = "✅ DEBUG ACTIVO";
-        btn.style.background = "#064e3b"; 
-        btn.style.borderColor = "#34d399";
-        btn.style.color = "#fff";
-    } else {
-        btn.innerHTML = "🐞 ACTIVAR DEBUG";
-        btn.style.background = "#222";
-        btn.style.borderColor = "#444";
-        btn.style.color = "#888";
-    }
-}
-
-window.onerror = function(msg, url, line) {
-    logDebug(`CRITICAL ERROR: ${msg} @ L${line}`);
-};
-
-function logDebug(message) {
-    let consoleDiv = document.getElementById('debug-console');
-    if (!consoleDiv) return;
-    const timestamp = new Date().toISOString().substr(11, 8); 
-    consoleDiv.insertAdjacentHTML('beforeend', `<div style="border-bottom:1px solid #220000; padding:2px;">
-        <span style="color:#555">[${timestamp}]</span> ${message}
-    </div>`);
-    consoleDiv.scrollTop = consoleDiv.scrollHeight;
-}
-
-function clearDebugLog() {
-    const consoleDiv = document.getElementById('debug-console');
-    if (consoleDiv) consoleDiv.innerHTML = '<div style="color:#444">--- Log Limpiado ---</div>';
+// --- SISTEMA DE DEBUG (FALLBACK) ---
+// Si debug.js no está cargado en el HTML, estas funciones vacías evitan que la app explote.
+if (typeof window.logDebug === 'undefined') {
+    window.logDebug = function() {}; 
+    window.initDebugSystem = function() {};
+    window.toggleDebugMode = function() { alert("Módulo debug.js no cargado. Añade <script src='debug.js'></script> al HTML."); };
+    window.clearDebugLog = function() {};
+    window.updateDebugButtonUI = function() {};
 }
 
 // --- ESTADO GLOBAL ---
