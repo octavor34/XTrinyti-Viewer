@@ -157,16 +157,26 @@ function cambiarModo() {
         document.getElementById('r34-inputs').style.display = 'block';
         document.documentElement.style.setProperty('--accent', '#3b82f6');
         title.innerText = "RULE34 VIEWER";
+        
     } else if(val === '4chan') {
         modoActual = 'chan_catalog';
         document.getElementById('chan-inputs').style.display = 'block';
         document.documentElement.style.setProperty('--accent', '#009688');
         title.innerText = "4CHAN BROWSER";
+        
+        // --- ESTA ES LA LÍNEA QUE ARREGLA EL BOTÓN ---
+        // Inicializa el botón y el dropdown cada vez que entras a 4chan
+        if(typeof setupDropdown === 'function') {
+            setupDropdown('catalog');
+        }
+        // ---------------------------------------------
+        
     } else if(val === 'reddit') {
         modoActual = 'reddit';
         document.getElementById('reddit-inputs').style.display = 'block';
         document.documentElement.style.setProperty('--accent', '#ff4500');
         title.innerText = "REDDIT FEED";
+        
     } else if(val === 'x') {
         modoActual = 'x';
         document.getElementById('x-inputs').style.display = 'block';
