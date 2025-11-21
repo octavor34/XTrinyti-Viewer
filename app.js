@@ -1,5 +1,5 @@
-// --- SISTEMA DE DEBUG MEJORADO (NUEVO) ---
-let debugEnabled = false;
+// --- SISTEMA DE DEBUG (VOLÁTIL) ---
+let debugEnabled = false; // Siempre apagado al inicio
 
 function initDebugSystem() {
     const consoleDiv = document.getElementById('debug-console');
@@ -11,20 +11,15 @@ function initDebugSystem() {
 
 function toggleDebugMode() {
     debugEnabled = !debugEnabled;
-    localStorage.setItem('sys_debug_mode', debugEnabled);
-    
     const consoleDiv = document.getElementById('debug-console');
     if (consoleDiv) consoleDiv.style.display = debugEnabled ? 'block' : 'none';
-    
     updateDebugButtonUI();
-    
-    if(debugEnabled) logDebug("Sistema de depuración: ACTIVADO");
+    if(debugEnabled) logDebug("Sistema de depuración: ACTIVADO (Sesión Temporal)");
 }
 
 function updateDebugButtonUI() {
     const btn = document.getElementById('btn-toggle-debug');
     if (!btn) return;
-    
     if (debugEnabled) {
         btn.innerHTML = "✅ DEBUG ACTIVO";
         btn.style.background = "#064e3b"; 
@@ -45,12 +40,10 @@ window.onerror = function(msg, url, line) {
 function logDebug(message) {
     let consoleDiv = document.getElementById('debug-console');
     if (!consoleDiv) return;
-
     const timestamp = new Date().toISOString().substr(11, 8); 
     consoleDiv.insertAdjacentHTML('beforeend', `<div style="border-bottom:1px solid #220000; padding:2px;">
         <span style="color:#555">[${timestamp}]</span> ${message}
     </div>`);
-    
     consoleDiv.scrollTop = consoleDiv.scrollHeight;
 }
 
@@ -75,11 +68,14 @@ let chanCursor = 0;
 let isInThread = false;
 let scrollCatalogPos = 0;
 
+// Estado del hilo 4chan
+let threadFilterMode = 'all'; 
+let threadViewMode = 'media'; 
+
 // --- UI HELPERS ---
 function toggleMenu() {
     const p = document.getElementById('panel-control');
     const b = document.getElementById('menu-backdrop');
-    
     if (p.style.display === 'none' || p.style.display === '') {
         p.style.display = 'block';
         b.style.display = 'block'; 
@@ -100,35 +96,23 @@ function ocultarPanel(){
     if(b) b.style.display = 'none';
 }
 
-// --- ADMIN SYSTEM (LÓGICA DEL CANDADO) ---
+// --- ADMIN SYSTEM ---
 function abrirAdminLogin() {
-    console.log("Intentando abrir login admin...");
     const panel = document.getElementById('panel-admin');
-    
-    // Si el panel ya está abierto, lo cerramos (toggle)
     if (panel.style.display === 'block') {
         panel.style.display = 'none';
         return;
     }
-    
-    // Si no, mostramos el modal de contraseña
-    const modal = document.getElementById('modal-admin-login');
-    if(modal) {
-        modal.style.display = 'flex';
-        setTimeout(() => {
-            const inp = document.getElementById('admin-pass-input');
-            if(inp) inp.focus();
-        }, 100);
-    } else {
-        alert("Error: Modal de login no encontrado en HTML");
-    }
+    document.getElementById('modal-admin-login').style.display = 'flex';
+    setTimeout(() => {
+        const inp = document.getElementById('admin-pass-input');
+        if(inp) inp.focus();
+    }, 100);
 }
 
 function checkAdminPass() {
     const input = document.getElementById('admin-pass-input');
     const val = input.value;
-    
-    // SYS_PASS viene de drivers.js
     if (val === SYS_PASS) {
         document.getElementById('modal-admin-login').style.display = 'none';
         document.getElementById('panel-admin').style.display = 'block';
@@ -137,7 +121,6 @@ function checkAdminPass() {
     } else {
         alert("ACCESO DENEGADO");
         input.value = '';
-        logDebug("Intento fallido de acceso admin.");
     }
 }
 
@@ -149,17 +132,15 @@ function cerrarAdminPanel() {
 function cambiarModo() {
     const val = document.getElementById('source-selector').value;
     
-    // 1. MEMORIA: Guardamos dónde estás
+    // 1. MEMORIA
     localStorage.setItem('sys_last_mode', val);
 
-    // 2. LIMPIEZA AUTOMÁTICA (EL FIX): 
-    // Si cambiamos de modo, borramos lo que había en pantalla para evitar mezclas.
-    // Esto asegura que si entras en X, no veas fotos de R34 de la sesión anterior.
+    // 2. LIMPIEZA VISUAL (Fix fantasmas)
     document.getElementById('feed-infinito').innerHTML = '';
     document.getElementById('centinela-scroll').style.display = 'none';
-    document.getElementById('loading-status').style.display = 'none'; // Ocultamos loading viejos
+    document.getElementById('loading-status').style.display = 'none';
 
-    // 3. UI UPDATE
+    // 3. UI
     document.querySelectorAll('.input-group').forEach(el => el.style.display = 'none');
     const title = document.getElementById('app-title');
     
@@ -168,23 +149,21 @@ function cambiarModo() {
         document.getElementById('r34-inputs').style.display = 'block';
         document.documentElement.style.setProperty('--accent', '#3b82f6');
         title.innerText = "RULE34 VIEWER";
-        
     } else if(val === '4chan') {
         modoActual = 'chan_catalog';
         document.getElementById('chan-inputs').style.display = 'block';
         document.documentElement.style.setProperty('--accent', '#009688');
         title.innerText = "4CHAN BROWSER";
         
+        // Inicializar botón y menú de 4chan
         if(typeof setupDropdown === 'function') {
             setupDropdown('catalog');
         }
-        
     } else if(val === 'reddit') {
         modoActual = 'reddit';
         document.getElementById('reddit-inputs').style.display = 'block';
         document.documentElement.style.setProperty('--accent', '#ff4500');
         title.innerText = "REDDIT FEED";
-        
     } else if(val === 'x') {
         modoActual = 'x';
         document.getElementById('x-inputs').style.display = 'block';
@@ -223,8 +202,6 @@ function detectType(url) {
 // --- NETWORK ENGINE ---
 async function fetchSmart(targetUrl) {
     let lastError = null;
-
-    // Lógica 4Chan
     if (targetUrl.includes('4cdn.org')) {
         for (let proxyUrl of FOURCHAN_PROXIES) {
             const urlToUse = proxyUrl + encodeURIComponent(targetUrl);
@@ -239,25 +216,20 @@ async function fetchSmart(targetUrl) {
         }
         throw new Error("Error Proxies 4Chan");
     }
-
-    // Lógica General
     for (let i = 0; i < PROXIES.length; i++) {
         const proxy = PROXIES[i];
         let finalUrl;
         if (proxy.type === 'direct') finalUrl = targetUrl;
         else finalUrl = proxy.url + encodeURIComponent(targetUrl);
-
         try {
             const res = await fetch(finalUrl);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const txt = await res.text();
             if (!txt) throw new Error("Respuesta vacía");
             if (txt.includes("Whoa there, pardner!") || txt.includes("Too Many Requests")) throw new Error("Bloqueo de Reddit");
-
             let json;
             try { json = JSON.parse(txt); } 
             catch (e) { throw new Error("No JSON"); }
-
             if (proxy.type === 'special_unpack') {
                 if (json.contents) {
                     try { return JSON.parse(json.contents); } 
@@ -285,7 +257,7 @@ function ejecutarBusqueda() {
     else if(modoActual === 'x') cargarX();
 }
 
-// --- R34 (CON LLAVES CIFRADAS) ---
+// --- R34 ---
 function sanitizeTag(tag) {
     if (!tag) return "";
     return tag.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
@@ -295,11 +267,8 @@ function buscarR34() { ejecutarBusqueda(); }
 async function cargarPaginaR34(pageNum) {
     if (cargando) return; cargando = true;
     const tags = misTags.join(' ') || document.getElementById('input-tags-real').value.trim();
-    
-    // DESENCRIPTADO AL VUELO
-    const creds = getKeys(); // De drivers.js
+    const creds = getKeys(); 
     const url = `https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&limit=10&pid=${pageNum}&tags=${encodeURIComponent(tags)}&user_id=${creds.uid}&api_key=${creds.key}`;
-
     try {
         const data = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
@@ -319,28 +288,22 @@ function renderTarjetaR34(item) {
 // --- REDDIT ---
 function buscarReddit() { ejecutarBusqueda(); }
 async function cargarPaginaReddit() {
-    if (cargando) return;
-    cargando = true;
+    if (cargando) return; cargando = true;
     let sub = document.getElementById('reddit-selector').value;
     if(sub==='custom') sub = document.getElementById('reddit-custom').value.trim();
     sub = sub.replace(/^(r\/|\/r\/|\/)/i, '');
     let url = `https://www.reddit.com/r/${sub}/hot.json?limit=20`;
     if(redditAfter) url += `&after=${redditAfter}`;
-
     try {
         const data = await fetchSmart(url);
         if (!data || !data.data || !Array.isArray(data.data.children)) throw new Error("Reddit invalido");
-        
         document.getElementById('loading-status').style.display = 'none';
         document.getElementById('centinela-scroll').style.display = 'flex';
         const posts = data.data.children;
         if(!posts.length) { hayMas=false; document.getElementById('centinela-scroll').innerText="Fin."; return; }
-        
         redditAfter = data.data.after;
         for (let i = 0; i < posts.length; i++) processRedditPost(posts[i].data);
-    } catch(e) {
-        document.getElementById('loading-status').innerText = `Error: ${e.message}`;
-    } finally { cargando=false; }
+    } catch(e) { document.getElementById('loading-status').innerText = `Error: ${e.message}`; } finally { cargando=false; }
 }
 function processRedditPost(p) {
     if(p.is_self) return;
@@ -358,22 +321,7 @@ function processRedditPost(p) {
     renderCard(src, prev, type, p.title, `u/${p.author}`, 'reddit');
 }
 
-// --- 4CHAN (REMASTERIZADO DINÁMICO) ---
-
-// Estado del hilo actual
-let threadFilterMode = 'all'; 
-let threadViewMode = 'media'; // 'media' o 'all' (con texto)
-
-function accionChanPrincipal() {
-    if (modoActual === 'chan_catalog') {
-        cargarCatalogo4Chan();
-    } else if (modoActual === 'chan_thread') {
-        filtrarHiloEnVivo();
-    } else {
-        // Fallback por si acaso
-        cargarCatalogo4Chan();
-    }
-}
+// --- 4CHAN (FULL SYSTEM) ---
 
 async function cargarCatalogo4Chan() {
     modoActual = 'chan_catalog';
@@ -386,7 +334,6 @@ async function cargarCatalogo4Chan() {
     document.getElementById('loading-status').innerText = `Cargando /${boardActual}/...`;
     document.getElementById('centinela-scroll').style.display = 'none'; 
     
-    // 1. RESTAURAR EL DROPDOWN PARA MODO CATÁLOGO
     setupDropdown('catalog');
 
     const url = `https://a.4cdn.org/${boardActual}/catalog.json`;
@@ -401,77 +348,45 @@ async function cargarCatalogo4Chan() {
     }
 }
 
-// Función maestra para configurar el dropdown según dónde estemos
 function setupDropdown(context) {
     const sortEl = document.getElementById('chan-sort');
     const mainBtn = document.getElementById('btn-chan-main');
-    
     if (!sortEl || !mainBtn) return;
     
-    sortEl.innerHTML = ''; // Limpiar opciones
+    sortEl.innerHTML = ''; 
 
     if (context === 'catalog') {
-        // --- MODO CATÁLOGO ---
-        const opts = [
-            {v:'bump', t:'🔥 Activos'},
-            {v:'img', t:'🖼️ Más Img'},
-            {v:'new', t:'✨ Nuevos'}
-        ];
-        opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
-        
-        // AUTOMATIZACIÓN 1: Al cambiar orden, reordena y cierra el menú
-        sortEl.onchange = () => { 
-            renderCatalogoOrdenado(); 
-            // Nota: renderCatalogoOrdenado ya llama a ocultarPanel(), así que no hace falta repetirlo,
-            // pero por seguridad UI lo dejamos implícito en esa función.
-        };
-        
-        // El botón es necesario aquí para "Recargar" el tablero
-        mainBtn.style.display = 'block';
+        // MODO CATALOGO
+        mainBtn.style.display = 'block'; 
         mainBtn.innerText = "CARGAR TABLÓN";
-        mainBtn.onclick = cargarCatalogo4Chan; 
+        mainBtn.onclick = cargarCatalogo4Chan;
+        
+        const opts = [{v:'bump', t:'🔥 Activos'}, {v:'img', t:'🖼️ Más Img'}, {v:'new', t:'✨ Nuevos'}];
+        opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
+        sortEl.onchange = () => { renderCatalogoOrdenado(); };
         
     } else if (context === 'thread') {
-        // --- MODO HILO ---
-        const opts = [
-            {v:'all', t:'👁️ Ver Todo'},
-            {v:'vid', t:'🎬 Solo Videos'},
-            {v:'gif', t:'👾 Solo GIFs'},
-            {v:'img', t:'📷 Solo JPG/PNG'}
-        ];
+        // MODO HILO (BOTÓN OCULTO)
+        mainBtn.style.display = 'none'; 
+
+        const opts = [{v:'all', t:'👁️ Ver Todo'}, {v:'vid', t:'🎬 Solo Videos'}, {v:'gif', t:'👾 Solo GIFs'}, {v:'img', t:'📷 Solo JPG/PNG'}];
         opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
         
-        // AUTOMATIZACIÓN 2: Al filtrar, aplica y CIERRA el menú
-        sortEl.onchange = () => { 
-            filtrarHiloEnVivo(); 
-            ocultarPanel(); // <--- ESTO CIERRA EL MENÚ AUTOMÁTICAMENTE
-        };
-        
-        // OCULTAR EL BOTÓN: Ya no lo necesitamos, la acción es automática
-        mainBtn.style.display = 'none';
+        sortEl.onchange = () => { filtrarHiloEnVivo(); ocultarPanel(); };
     }
 }
 
 function renderCatalogoOrdenado() {
     if (modoActual !== 'chan_catalog') return;
-
     const sortEl = document.getElementById('chan-sort');
     if (!sortEl) return;
-
     document.getElementById('feed-infinito').innerHTML = '';
-
     const sortMode = sortEl.value;
     let threads = [...catalogCache];
-
-    if (sortMode === 'bump') {
-        threads.sort((a, b) => (b.last_modified || 0) - (a.last_modified || 0));
-    } else if (sortMode === 'new') {
-        threads.sort((a, b) => b.no - a.no);
-    } else if (sortMode === 'img') {
-        threads.sort((a, b) => (b.images || 0) - (a.images || 0));
-    }
+    if (sortMode === 'bump') threads.sort((a, b) => (b.last_modified || 0) - (a.last_modified || 0));
+    else if (sortMode === 'new') threads.sort((a, b) => b.no - a.no);
+    else if (sortMode === 'img') threads.sort((a, b) => (b.images || 0) - (a.images || 0));
     ocultarPanel();
-
     threads.forEach(thread => renderHilo4Chan(thread));
 }
 
@@ -479,162 +394,104 @@ function renderHilo4Chan(t) {
     const thumb = `https://i.4cdn.org/${boardActual}/${t.tim}s.jpg`;
     const titleRaw = t.sub || t.com || "Sin descripción";
     const cleanDesc = titleRaw.replace(/<br>/g, ' ').replace(/(<([^>]+)>)/gi, "").substring(0, 150);
-    
     const card = document.createElement('div'); 
     card.className = 'tarjeta thread-card';
-    
-    // Nota: Quitamos el onclick global de la card para evitar conflictos,
-    // o lo dejamos solo para el comportamiento por defecto (Media).
-    // Aquí lo dejo para que si tocas la imagen (fuera de los botones) abra Media por defecto.
     card.onclick = () => cargarHiloCompleto(t.no, 'media'); 
 
     card.innerHTML = `
         <div class="media-wrapper" style="min-height:150px; position:relative;">
             <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:contain;height:200px;">
-            
             <div class="chan-choices">
-                <button class="btn-choice" onclick="event.stopPropagation(); cargarHiloCompleto(${t.no}, 'media')" style="border-color:#00ffaa;">
-                    📷 MEDIA
-                </button>
-                <button class="btn-choice" onclick="event.stopPropagation(); cargarHiloCompleto(${t.no}, 'all')" style="border-color:#ffaa00;">
-                    💬 CHAT
-                </button>
+                <button class="btn-choice" onclick="event.stopPropagation(); cargarHiloCompleto(${t.no}, 'media')" style="border-color:#00ffaa;">📷 MEDIA</button>
+                <button class="btn-choice" onclick="event.stopPropagation(); cargarHiloCompleto(${t.no}, 'all')" style="border-color:#ffaa00;">💬 CHAT</button>
             </div>
         </div>
-        
         <div class="thread-header">
             <span class="badge bg-chan">/${boardActual}/</span> 
             <span style="color:#aaa; font-size:0.8rem">#${t.no}</span>
             <div class="thread-title" style="font-size:0.8rem; margin-top:5px; font-weight:normal; color:#ddd">${cleanDesc}</div>
         </div>
-        <div class="meta-footer">
-            <span>📷 ${t.images}</span><span>💬 ${t.replies}</span>
-        </div>`;
-        
+        <div class="meta-footer"><span>📷 ${t.images}</span><span>💬 ${t.replies}</span></div>`;
     document.getElementById('feed-infinito').appendChild(card);
 }
 
 async function cargarHiloCompleto(threadId, viewMode) {
     scrollCatalogPos = window.scrollY;
     modoActual = 'chan_thread';
-    threadViewMode = viewMode; // Guardamos si quiere ver texto o no
-
+    threadViewMode = viewMode; 
     ocultarPanel();
     document.getElementById('feed-infinito').innerHTML = '';
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('nav-chan').style.display = 'block';
-    
-    // 2. CAMBIAR EL DROPDOWN A MODO FILTRO
     setupDropdown('thread');
-
     const url = `https://a.4cdn.org/${boardActual}/thread/${threadId}.json`;
     try {
         const data = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
-        
         let count = 0;
         data.posts.forEach(p => {
             const hasMedia = !!p.tim;
-            
-            // Lógica de filtrado inicial según el modo de vista elegido
             if (viewMode === 'media' && !hasMedia) return; 
-
-            // Renderizado especial para 4chan
             renderChanPost(p, hasMedia, viewMode);
             count++;
         });
-
         if(count===0) document.getElementById('loading-status').innerText = "Hilo vacío o sin imágenes.";
-        
-    } catch(e) { 
-        document.getElementById('loading-status').innerText = "Hilo muerto (404)."; 
-    }
+    } catch(e) { document.getElementById('loading-status').innerText = "Hilo muerto (404)."; }
 }
 
 function renderChanPost(p, hasMedia, viewMode) {
-    // Determinamos tipo de archivo
-    let type = 'text';
-    let src = '', prev = '';
-    let badgeHtml = '';
-    let fileInfo = '';
-
+    let type = 'text', src = '', prev = '', badgeHtml = '', fileInfo = '';
     if (hasMedia) {
         src = `https://i.4cdn.org/${boardActual}/${p.tim}${p.ext}`;
         prev = `https://i.4cdn.org/${boardActual}/${p.tim}s.jpg`;
         type = detectType(src);
-        
-        // --- ARREGLO BUG 3: RECUPERAR BADGES Y NOMBRE ---
         if(type === 'vid') badgeHtml = `<span class="badge bg-vid">VID</span>`;
         else if(type === 'gif') badgeHtml = `<span class="badge bg-gif">GIF</span>`;
         else badgeHtml = `<span class="badge bg-img">IMG</span>`;
-
-        // Nombre del archivo + extensión (cortado si es muy largo)
         let cleanName = p.filename.length > 20 ? p.filename.substring(0,20)+'...' : p.filename;
         fileInfo = `<span style="font-family:monospace; font-size:0.75rem; color:#aaa; margin-left:5px;">${cleanName}${p.ext}</span>`;
-        // -----------------------------------------------
     }
-
     const card = document.createElement('div'); 
     card.className = 'tarjeta chan-post-item';
     card.dataset.filetype = type; 
-
     let contentHTML = '';
-
-    // 1. MEDIA CON METADATA
     if (hasMedia) {
         let mediaEl = '';
-        if(type==='vid') {
-            mediaEl=`<div class="media-wrapper"><video class="media-content" controls loop playsinline preload="none" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
-        } else if(type==='gif') {
-            mediaEl=`<div class="media-wrapper" onclick="alternarGif(this,'${src}','${prev}')"><img class="media-content" src="${prev}" loading="lazy"><div class="overlay-btn">GIF</div><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
-        } else {
-            mediaEl=`<div class="media-wrapper"><img class="media-content" src="${prev}" loading="lazy" onclick="abrirLightbox('${src}','img')"><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
-        }
-        
-        contentHTML += mediaEl;
-        
-        // AÑADIMOS EL FOOTER CON LA INFO TÉCNICA
-        contentHTML += `<div class="meta-footer" style="border-top:1px solid #222;">
-            <div style="display:flex; align-items:center;">
-                ${badgeHtml} ${fileInfo}
-            </div>
-        </div>`;
+        if(type==='vid') mediaEl=`<div class="media-wrapper"><video class="media-content" controls loop playsinline preload="none" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        else if(type==='gif') mediaEl=`<div class="media-wrapper" onclick="alternarGif(this,'${src}','${prev}')"><img class="media-content" src="${prev}" loading="lazy"><div class="overlay-btn">GIF</div><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        else mediaEl=`<div class="media-wrapper"><img class="media-content" src="${prev}" loading="lazy" onclick="abrirLightbox('${src}','img')"><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        contentHTML += mediaEl + `<div class="meta-footer" style="border-top:1px solid #222;"><div style="display:flex; align-items:center;">${badgeHtml} ${fileInfo}</div></div>`;
     }
-
-    // 2. TEXTO (CHAT)
     if (viewMode === 'all' && p.com) {
         let cleanCom = p.com.replace(/<wbr>/g, ''); 
-        contentHTML += `<div style="padding:10px; font-size:0.85rem; color:#ccc; border-top:1px solid #222; word-break:break-word; overflow-wrap:anywhere; background:#111;">
-            <span style="color:#555; font-size:0.7rem; font-weight:bold;">#${p.no}</span><br>
-            <span style="display:block; margin-top:5px; line-height:1.4;">${cleanCom}</span>
-        </div>`;
-    } else if (!hasMedia && viewMode === 'all') {
-        return; // Saltamos posts vacíos
-    }
-
+        contentHTML += `<div style="padding:10px; font-size:0.85rem; color:#ccc; border-top:1px solid #222; word-break:break-word; overflow-wrap:anywhere; background:#111;"><span style="color:#555; font-size:0.7rem; font-weight:bold;">#${p.no}</span><br><span style="display:block; margin-top:5px; line-height:1.4;">${cleanCom}</span></div>`;
+    } else if (!hasMedia && viewMode === 'all') return; 
     card.innerHTML = contentHTML; 
-
     if(type==='vid') videoObserver.observe(card.querySelector('video'));
     document.getElementById('feed-infinito').appendChild(card);
 }
 
-// Función para el dropdown dentro del hilo
 function filtrarHiloEnVivo() {
-    const filter = document.getElementById('chan-sort').value; // all, vid, gif, img
+    const filter = document.getElementById('chan-sort').value; 
     const cards = document.querySelectorAll('.chan-post-item');
-
     cards.forEach(c => {
         const type = c.dataset.filetype;
-        
-        if (filter === 'all') {
-            c.style.display = 'block';
-        } else {
-            // Si filtro es 'vid', mostramos solo 'vid'.
-            // Si filtro es 'img', mostramos 'img' (jpg/png).
+        if (filter === 'all') c.style.display = 'block';
+        else {
             if (type === filter) c.style.display = 'block';
             else c.style.display = 'none';
         }
     });
+}
+
+function volverCatalogo() {
+    modoActual = 'chan_catalog'; chanCursor = 0; isInThread = false;
+    ocultarPanel();
+    setupDropdown('catalog'); 
+    document.getElementById('nav-chan').style.display = 'none'; 
+    document.getElementById('feed-infinito').innerHTML = '';
+    if (catalogCache && catalogCache.length > 0) { renderCatalogoOrdenado(); restoreCatalogScroll(); return; }
+    cargarCatalogo4Chan().then(() => { restoreCatalogScroll(); });
 }
 
 // --- X (NITTER) ---
@@ -701,30 +558,6 @@ function toggleTags(el) {
 }
 function generarTagsHtml(t) { return t.split(' ').map(tag=>tag?`<span class="tag-chip" style="font-size:0.7rem;margin:2px" onclick="abrirModal('${tag}')">${tag}</span>`:'').join(''); }
 function restoreCatalogScroll() { requestAnimationFrame(() => { requestAnimationFrame(() => { window.scrollTo(0, scrollCatalogPos); }); }); }
-function volverCatalogo() {
-    modoActual = 'chan_catalog';
-    chanCursor = 0;
-    isInThread = false;
-
-    ocultarPanel();
-    
-    // --- ARREGLO BUG 2: Reseteamos el menú visualmente al catálogo ---
-    setupDropdown('catalog'); 
-    // ---------------------------------------------------------------
-    
-    document.getElementById('nav-chan').style.display = 'none'; 
-    document.getElementById('feed-infinito').innerHTML = '';
-
-    if (catalogCache && catalogCache.length > 0) {
-        renderCatalogoOrdenado();
-        restoreCatalogScroll();
-        return;
-    }
-
-    cargarCatalogo4Chan().then(() => {
-        restoreCatalogScroll();
-    });
-}
 function cargarSiguientePagina() { document.getElementById('centinela-scroll').innerText="Cargando..."; if(modoActual==='r34')cargarPaginaR34(paginaActual+1); if(modoActual==='reddit')cargarPaginaReddit(); }
 
 // Lightbox
@@ -768,74 +601,42 @@ function renderChips() { const c = document.getElementById('lista-chips'); c.inn
 // Modal Tags
 function abrirModal(tag) { const modal = document.getElementById('modal-tag-options'); document.getElementById('modal-tag-name').innerText = tag; tagSeleccionadoTemp = tag; modal.style.display = 'flex'; }
 function cerrarModal(e) { const modal = document.getElementById('modal-tag-options'); if (!e || e.target === modal) { modal.style.display = 'none'; } }
-function accionTag(mode) {
-    if (mode === 'add') {
-        // 1. Añadimos el tag a la lista interna y visual
-        agregarTag(tagSeleccionadoTemp);
-        
-        // 2. Cerramos el modal
-        cerrarModal(null);
-        
-        // 3. FORZAMOS la búsqueda
-        // Usamos setTimeout para asegurar que el motor de JS actualizó el array misTags antes de leerlo
-        setTimeout(() => {
-            console.log("Disparando búsqueda automática tras añadir tag...");
-            // Forzamos estado 'no cargando' para asegurar que la petición salga
-            cargando = false; 
-            buscarR34(); 
-        }, 50); // 50ms de respiro para el navegador
-        
-        return;
-    }
-
-    if (mode === 'new') {
-        // Borramos tags anteriores y dejamos solo este
-        misTags = [tagSeleccionadoTemp];
-        renderChips();
-        
-        cerrarModal(null);
-        
-        setTimeout(() => {
-            cargando = false;
-            buscarR34();
-        }, 50);
-        return;
-    }
+function accionTag(mode) { 
+    if (mode === 'add') { 
+        agregarTag(tagSeleccionadoTemp); 
+        cerrarModal(null); 
+        setTimeout(() => { cargando = false; buscarR34(); }, 50);
+        return; 
+    } 
+    if (mode === 'new') { 
+        misTags = [tagSeleccionadoTemp]; 
+        renderChips(); 
+        cerrarModal(null); 
+        setTimeout(() => { cargando = false; buscarR34(); }, 50);
+        return; 
+    } 
 }
-// INIT - RECUPERACIÓN DE SESIÓN INTELIGENTE
+
+// INIT - RECUPERACIÓN DE SESIÓN
 window.onload = function() {
     initDebugSystem();
     
-    // 1. LIMPIEZA NUCLEAR: Borramos cualquier contenido visual previo (R34 fantasmas)
+    // Limpieza
     document.getElementById('feed-infinito').innerHTML = '';
     document.getElementById('loading-status').style.display = 'none';
 
-    // 2. RECUPERAR SESIÓN
+    // Recuperar
     const lastMode = localStorage.getItem('sys_last_mode') || 'r34';
-    
-    // Sincronizar el selector visual
     const sel = document.getElementById('source-selector');
     if(sel) sel.value = lastMode;
     
-    // 3. RESTAURAR INTERFAZ (Inputs correctos)
     cambiarModo(); 
 
-    // 4. AUTO-ARRANQUE (La parte que te faltaba)
-    // Si es 4chan, cargamos el catálogo automáticamente
     if (lastMode === '4chan') {
-        console.log("Restaurando sesión de 4Chan...");
-        
-        // Aseguramos que el botón tenga la lógica conectada
         const btnChan = document.getElementById('btn-chan-main');
         if (btnChan) btnChan.onclick = cargarCatalogo4Chan;
-
-        // ¡DISPARAMOS LA CARGA AUTOMÁTICA!
         setTimeout(cargarCatalogo4Chan, 100); 
     }
     
-    // Si es Reddit o X, podríamos auto-cargar si guardáramos la última búsqueda,
-    // pero por ahora al menos limpiamos la basura de R34.
-
-    // Test de seguridad
     try { if(!SYS_PASS) console.error("Drivers.js no cargado!"); } catch(e){}
 };
