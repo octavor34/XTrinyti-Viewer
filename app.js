@@ -278,7 +278,10 @@ async function cargarCatalogo4Chan() {
     document.getElementById('loading-status').innerText = `Cargando /${boardActual}/...`;
     document.getElementById('centinela-scroll').style.display = 'none'; 
 
-    const url = `https://a.4cdn.org/${boardActual}/catalog.json`;
+    const originalUrl = `https://a.4cdn.org/${boardActual}/catalog.json`;
+    // --- CORREGIDO ---
+    const url = FOURCHAN_PROXY + encodeURIComponent(originalUrl);
+    // ---
     try {
         const pages = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
