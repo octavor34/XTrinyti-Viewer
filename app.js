@@ -396,7 +396,7 @@ async function cargarCatalogo4Chan() {
 // Función maestra para configurar el dropdown según dónde estemos
 function setupDropdown(context) {
     const sortEl = document.getElementById('chan-sort');
-    const mainBtn = document.getElementById('btn-chan-main'); // El botón que acabamos de editar
+    const mainBtn = document.getElementById('btn-chan-main');
     
     if (!sortEl || !mainBtn) return;
     
@@ -410,9 +410,16 @@ function setupDropdown(context) {
             {v:'new', t:'✨ Nuevos'}
         ];
         opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
-        sortEl.onchange = renderCatalogoOrdenado;
         
-        // Arreglo del Bug 1: El botón vuelve a ser "Cargar Tablón"
+        // AUTOMATIZACIÓN 1: Al cambiar orden, reordena y cierra el menú
+        sortEl.onchange = () => { 
+            renderCatalogoOrdenado(); 
+            // Nota: renderCatalogoOrdenado ya llama a ocultarPanel(), así que no hace falta repetirlo,
+            // pero por seguridad UI lo dejamos implícito en esa función.
+        };
+        
+        // El botón es necesario aquí para "Recargar" el tablero
+        mainBtn.style.display = 'block';
         mainBtn.innerText = "CARGAR TABLÓN";
         mainBtn.onclick = cargarCatalogo4Chan; 
         
@@ -425,11 +432,15 @@ function setupDropdown(context) {
             {v:'img', t:'📷 Solo JPG/PNG'}
         ];
         opts.forEach(o => sortEl.add(new Option(o.t, o.v)));
-        sortEl.onchange = filtrarHiloEnVivo;
         
-        // Arreglo del Bug 1: El botón ahora sirve para refrescar/filtrar
-        mainBtn.innerText = "APLICAR FILTROS";
-        mainBtn.onclick = filtrarHiloEnVivo;
+        // AUTOMATIZACIÓN 2: Al filtrar, aplica y CIERRA el menú
+        sortEl.onchange = () => { 
+            filtrarHiloEnVivo(); 
+            ocultarPanel(); // <--- ESTO CIERRA EL MENÚ AUTOMÁTICAMENTE
+        };
+        
+        // OCULTAR EL BOTÓN: Ya no lo necesitamos, la acción es automática
+        mainBtn.style.display = 'none';
     }
 }
 
