@@ -1,6 +1,6 @@
-/ --- SISTEMA DE DEBUG MEJORADO (VOLÁTIL) ---
+// --- SISTEMA DE DEBUG MEJORADO (VOLÁTIL) ---
 // Cambiado: Ahora siempre empieza apagado al recargar
-let debugEnabled = false; 
+let debugEnabled = true; 
 
 function initDebugSystem() {
     const consoleDiv = document.getElementById('debug-console');
