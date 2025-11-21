@@ -524,21 +524,35 @@ function abrirModal(tag) { const modal = document.getElementById('modal-tag-opti
 function cerrarModal(e) { const modal = document.getElementById('modal-tag-options'); if (!e || e.target === modal) { modal.style.display = 'none'; } }
 function accionTag(mode) {
     if (mode === 'add') {
+        // 1. Añadimos el tag a la lista interna y visual
         agregarTag(tagSeleccionadoTemp);
+        
+        // 2. Cerramos el modal
         cerrarModal(null);
         
-        // --- AQUÍ ESTÁ EL CAMBIO ---
-        buscarR34(); // Dispara la búsqueda automáticamente al añadir
-        // ---------------------------
+        // 3. FORZAMOS la búsqueda
+        // Usamos setTimeout para asegurar que el motor de JS actualizó el array misTags antes de leerlo
+        setTimeout(() => {
+            console.log("Disparando búsqueda automática tras añadir tag...");
+            // Forzamos estado 'no cargando' para asegurar que la petición salga
+            cargando = false; 
+            buscarR34(); 
+        }, 50); // 50ms de respiro para el navegador
         
         return;
     }
 
     if (mode === 'new') {
+        // Borramos tags anteriores y dejamos solo este
         misTags = [tagSeleccionadoTemp];
         renderChips();
+        
         cerrarModal(null);
-        buscarR34();
+        
+        setTimeout(() => {
+            cargando = false;
+            buscarR34();
+        }, 50);
         return;
     }
 }
