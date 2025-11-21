@@ -135,7 +135,7 @@ async function fetchSmart(targetUrl) {
 
    // Reddit SIEMPRE directo (inicio en 1)
    if (targetUrl.includes('nitter') || targetUrl.includes("reddit.com") || targetUrl.includes("i.reddit.com")) {
-    inicio = 1;
+    inicio = 0;
     }
 
     if (targetUrl.includes('4cdn.org')) {
