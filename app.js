@@ -797,26 +797,40 @@ function accionTag(mode) {
     }
 }
 // INIT
+// INIT - RECUPERACIÓN DE SESIÓN INTELIGENTE
 window.onload = function() {
     initDebugSystem();
     
-    // --- RECUPERAR SESIÓN ---
-    // Leemos la última plataforma usada (o 'r34' por defecto)
+    // 1. LIMPIEZA NUCLEAR: Borramos cualquier contenido visual previo (R34 fantasmas)
+    document.getElementById('feed-infinito').innerHTML = '';
+    document.getElementById('loading-status').style.display = 'none';
+
+    // 2. RECUPERAR SESIÓN
     const lastMode = localStorage.getItem('sys_last_mode') || 'r34';
     
-    // Ponemos el selector visual en la opción correcta
+    // Sincronizar el selector visual
     const sel = document.getElementById('source-selector');
     if(sel) sel.value = lastMode;
     
-    // Ejecutamos el cambio de modo para que aparezcan los inputs correctos (y el botón de 4chan)
-    cambiarModo();
-    // ------------------------
+    // 3. RESTAURAR INTERFAZ (Inputs correctos)
+    cambiarModo(); 
 
-    // Fix adicional para 4chan (por si acaso cambiarModo falló en inicializarlo)
-    const btnChan = document.getElementById('btn-chan-main');
-    if (btnChan && lastMode === '4chan') {
-        btnChan.onclick = cargarCatalogo4Chan;
+    // 4. AUTO-ARRANQUE (La parte que te faltaba)
+    // Si es 4chan, cargamos el catálogo automáticamente
+    if (lastMode === '4chan') {
+        console.log("Restaurando sesión de 4Chan...");
+        
+        // Aseguramos que el botón tenga la lógica conectada
+        const btnChan = document.getElementById('btn-chan-main');
+        if (btnChan) btnChan.onclick = cargarCatalogo4Chan;
+
+        // ¡DISPARAMOS LA CARGA AUTOMÁTICA!
+        setTimeout(cargarCatalogo4Chan, 100); 
     }
+    
+    // Si es Reddit o X, podríamos auto-cargar si guardáramos la última búsqueda,
+    // pero por ahora al menos limpiamos la basura de R34.
 
+    // Test de seguridad
     try { if(!SYS_PASS) console.error("Drivers.js no cargado!"); } catch(e){}
 };
