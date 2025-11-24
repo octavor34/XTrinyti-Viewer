@@ -381,54 +381,127 @@ async function cargarHiloCompleto(threadId, viewMode) {
     scrollCatalogPos = window.scrollY;
     modoActual = 'chan_thread';
     threadViewMode = viewMode; 
+    
     ocultarPanel();
-    document.getElementById('feed-infinito').innerHTML = '';
+    
+    // --- ACTIVAR MODO TIKTOK ---
+    const feed = document.getElementById('feed-infinito');
+    feed.innerHTML = '';
+    feed.classList.add('tiktok-mode'); // <--- AQUÍ ACTIVAMOS LA VISTA DE SWIPE
+    // ---------------------------
+
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('nav-chan').style.display = 'block';
     setupDropdown('thread');
+    
     const url = `https://a.4cdn.org/${boardActual}/thread/${threadId}.json`;
     try {
         const data = await fetchSmart(url);
         document.getElementById('loading-status').style.display = 'none';
+        
         let count = 0;
         data.posts.forEach(p => {
             const hasMedia = !!p.tim;
+            
+            // Si el modo es SOLO MEDIA y no hay archivo, saltamos
             if (viewMode === 'media' && !hasMedia) return; 
+            
+            // Si el modo es ALL y es solo texto, también lo mostramos (como tarjeta de texto)
+            
             renderChanPost(p, hasMedia, viewMode);
             count++;
         });
-        if(count===0) document.getElementById('loading-status').innerText = "Hilo vacío o sin imágenes.";
+
+        if(count===0) document.getElementById('loading-status').innerText = "Hilo vacío o filtrado.";
+        
     } catch(e) { document.getElementById('loading-status').innerText = "Hilo muerto (404)."; }
 }
 
 function renderChanPost(p, hasMedia, viewMode) {
     let type = 'text', src = '', prev = '', badgeHtml = '', fileInfo = '';
+    
+    // 1. PREPARAR MEDIA
     if (hasMedia) {
         src = `https://i.4cdn.org/${boardActual}/${p.tim}${p.ext}`;
         prev = `https://i.4cdn.org/${boardActual}/${p.tim}s.jpg`;
         type = detectType(src);
+        
         if(type === 'vid') badgeHtml = `<span class="badge bg-vid">VID</span>`;
         else if(type === 'gif') badgeHtml = `<span class="badge bg-gif">GIF</span>`;
         else badgeHtml = `<span class="badge bg-img">IMG</span>`;
-        let cleanName = p.filename.length > 20 ? p.filename.substring(0,20)+'...' : p.filename;
+        
+        let cleanName = p.filename.length > 15 ? p.filename.substring(0,15)+'...' : p.filename;
         fileInfo = `<span style="font-family:monospace; font-size:0.75rem; color:#aaa; margin-left:5px;">${cleanName}${p.ext}</span>`;
+    } else {
+        // Si es solo texto
+        type = 'text';
+        badgeHtml = `<span class="badge" style="background:#333;">TXT</span>`;
     }
+
+    // 2. PREPARAR COMENTARIO (Para footer y drawer)
+    let rawCom = p.com || "";
+    // Limpieza básica de HTML de 4chan para que se vea decente
+    // Reemplazamos <br> por saltos de línea visuales
+    let cleanComFull = rawCom.replace(/<wbr>/g, ''); 
+    
+    // Previa para el footer (sin HTML tags molestos)
+    let cleanComPreview = rawCom.replace(/<br>/g, ' ').replace(/(<([^>]+)>)/gi, "").substring(0, 60);
+    if(cleanComPreview.length >= 60) cleanComPreview += "...";
+    if(!cleanComPreview) cleanComPreview = "Sin comentario";
+
     const card = document.createElement('div'); 
     card.className = 'tarjeta chan-post-item';
     card.dataset.filetype = type; 
-    let contentHTML = '';
+
+    // 3. GENERAR HTML (Estructura TikTok)
+    let mediaEl = '';
+    
     if (hasMedia) {
-        let mediaEl = '';
-        if(type==='vid') mediaEl=`<div class="media-wrapper"><video class="media-content" controls loop playsinline preload="none" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
-        else if(type==='gif') mediaEl=`<div class="media-wrapper" onclick="alternarGif(this,'${src}','${prev}')"><img class="media-content" src="${prev}" loading="lazy"><div class="overlay-btn">GIF</div><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
-        else mediaEl=`<div class="media-wrapper"><img class="media-content" src="${prev}" loading="lazy" onclick="abrirLightbox('${src}','img')"><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
-        contentHTML += mediaEl + `<div class="meta-footer" style="border-top:1px solid #222;"><div style="display:flex; align-items:center;">${badgeHtml} ${fileInfo}</div></div>`;
+        if(type==='vid') {
+            mediaEl=`<div class="media-wrapper"><video class="media-content" controls loop playsinline preload="none" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        } else if(type==='gif') {
+            mediaEl=`<div class="media-wrapper" onclick="alternarGif(this,'${src}','${prev}')"><img class="media-content" src="${prev}" loading="lazy"><div class="overlay-btn">GIF</div><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        } else {
+            mediaEl=`<div class="media-wrapper"><img class="media-content" src="${prev}" loading="lazy" onclick="abrirLightbox('${src}','img')"><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        }
+    } else {
+        // Tarjeta SOLO TEXTO (Centrada y elegante)
+        mediaEl = `<div class="media-wrapper" style="align-items:center; padding:20px; box-sizing:border-box;">
+            <div style="color:#ddd; font-size:1.1rem; text-align:center; line-height:1.5;">
+                "${cleanComPreview}"
+            </div>
+        </div>`;
     }
-    if (viewMode === 'all' && p.com) {
-        let cleanCom = p.com.replace(/<wbr>/g, ''); 
-        contentHTML += `<div style="padding:10px; font-size:0.85rem; color:#ccc; border-top:1px solid #222; word-break:break-word; overflow-wrap:anywhere; background:#111;"><span style="color:#555; font-size:0.7rem; font-weight:bold;">#${p.no}</span><br><span style="display:block; margin-top:5px; line-height:1.4;">${cleanCom}</span></div>`;
-    } else if (!hasMedia && viewMode === 'all') return; 
-    card.innerHTML = contentHTML; 
+
+    // 4. FOOTER & DRAWER (Reutilizamos la lógica de R34)
+    // Usamos 'toggleTags' para abrir el comentario completo
+    let footerHtml = `
+        <div class="meta-footer">
+            <div style="display:flex; gap:10px; align-items:center;">
+                ${badgeHtml} 
+                <span class="badge bg-chan">#${p.no}</span>
+                ${fileInfo}
+            </div>
+            
+            <div class="meta-desc-preview" onclick="toggleTags(this)">
+                ${cleanComPreview} <span class="ver-mas">Leer más</span>
+            </div>
+        </div>
+
+        <div class="tags-drawer">
+            <div class="drawer-close-x" onclick="toggleTags(this)">✕</div>
+            <h3 style="color:#fff; margin: 0 0 10px 0; font-size:1.1rem; border-bottom:1px solid #333; padding-bottom:10px;">
+                Comentario #${p.no}
+            </h3>
+            
+            <div class="drawer-tags-container" style="display:block; padding: 20px 20px 80px 20px;">
+                <div style="color:#ddd; font-size:1rem; line-height:1.5; white-space:pre-wrap;">${rawCom}</div>
+            </div>
+        </div>
+    `;
+
+    card.innerHTML = mediaEl + footerHtml; 
+    
     if(type==='vid') videoObserver.observe(card.querySelector('video'));
     document.getElementById('feed-infinito').appendChild(card);
 }
@@ -447,11 +520,21 @@ function filtrarHiloEnVivo() {
 }
 
 function volverCatalogo() {
-    modoActual = 'chan_catalog'; chanCursor = 0; isInThread = false;
+    modoActual = 'chan_catalog'; 
+    chanCursor = 0; 
+    isInThread = false;
+
     ocultarPanel();
     setupDropdown('catalog'); 
+    
     document.getElementById('nav-chan').style.display = 'none'; 
-    document.getElementById('feed-infinito').innerHTML = '';
+    const feed = document.getElementById('feed-infinito');
+    feed.innerHTML = '';
+    
+    // --- DESACTIVAR MODO TIKTOK ---
+    feed.classList.remove('tiktok-mode'); // <--- VOLVEMOS A LA REJILLA NORMAL
+    // ------------------------------
+
     if (catalogCache && catalogCache.length > 0) { renderCatalogoOrdenado(); restoreCatalogScroll(); return; }
     cargarCatalogo4Chan().then(() => { restoreCatalogScroll(); });
 }
