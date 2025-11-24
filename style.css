@@ -250,9 +250,18 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 }
 
 /* Cuando se abre */
-#feed-infinito.tiktok-mode .tags-drawer.open {
-    display: flex;
-    animation: slideUpIn 0.25s ease-out; /* Animación de entrada */
+#feed-infinito.tiktok-mode .tags-drawer .tag-chip {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #eee;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    border-radius: 20px;
+    max-width: 90%; /* Evita que un tag gigante rompa la pantalla */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
 }
 @keyframes slideUpIn {
     from { transform: translateY(100%); opacity: 0; }
@@ -262,25 +271,36 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 /* El botón X para cerrar */
 .drawer-close-x {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    font-size: 2rem;
-    color: #fff;
-    background: rgba(255,255,255,0.1);
-    width: 40px; height: 40px;
-    display: flex; justify-content: center; align-items: center;
+    top: 20px;
+    right: 20px;
+    z-index: 160; /* Aseguramos que esté encima de todo */
+    background: rgba(255, 255, 255, 0.15); /* Un poco más visible */
+    backdrop-filter: blur(4px);
+    width: 44px; 
+    height: 44px;
     border-radius: 50%;
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
     cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 /* Contenedor de los chips dentro del telón */
 .drawer-tags-container {
-    margin-top: 50px; /* Espacio para la X */
+    margin-top: 60px; /* Espacio generoso para la X de cerrar */
+    width: 100%;
+    height: calc(100% - 80px); /* Ocupa el resto de la altura disponible */
+    
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    overflow-y: auto; /* Scroll si hay muchos tags */
-    max-height: 80vh;
+    flex-wrap: wrap; /* Permite que los tags bajen a la siguiente línea */
+    justify-content: center; /* CENTRADO HORIZONTAL */
+    align-content: flex-start; /* Alinea los bloques al principio (arriba) */
+    gap: 10px; /* Espacio entre tags */
+    
+    overflow-y: auto; /* Scroll vertical si son muchos */
+    padding-bottom: 50px; /* Espacio final para que el último tag no toque el borde */
+    box-sizing: border-box; /* Asegura que el padding no rompa el ancho */
 }
 
 /* Ajuste de los chips de tags para que se vean mejor en el overlay */
