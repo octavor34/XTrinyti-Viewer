@@ -853,12 +853,6 @@ function renderCard(src, prev, type, tags, badgeTxt, context) {
 // 6. UTILIDADES Y DESCARGAS
 // ==========================================
 
-const DOWNLOAD_PROXIES = [
-    'https://corsproxy.io/?', 
-    'https://api.allorigins.win/raw?url=', 
-    'https://api.codetabs.com/v1/proxy/?quest='
-];
-
 async function descargar(u) {
     const btn = event.currentTarget;
     const iconOriginal = btn.innerText;
