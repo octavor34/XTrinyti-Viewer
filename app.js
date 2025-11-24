@@ -266,47 +266,52 @@ async function cargarPaginaReddit() {
     } catch(e) { document.getElementById('loading-status').innerText = `Error: ${e.message}`; } finally { cargando=false; }
 }
 function processRedditPost(p) {
-    if (p.is_self) return; // Ignoramos texto puro
+    if (p.is_self) return; 
     
-    let src = p.url;
-    let prev = p.thumbnail;
+    let src = p.url; // URL original (para descarga)
+    let prev = p.thumbnail; // Empezamos con la mala por si acaso
     let type = detectType(src);
 
-    // --- CORRECCIÓN DE PANTALLA NEGRA ---
-    
-    // 1. Si detectamos que es una IMAGEN (jpg/png/webp), 
-    // forzamos que la "vista previa" sea la imagen original completa.
-    // Esto arregla los thumbnails "default" y la baja calidad.
+    // --- EL PUNTO MEDIO (SMART RESIZING) ---
     if (type === 'img') {
-        prev = src; 
+        // Verificamos si Reddit generó versiones redimensionadas
+        if (p.preview?.images?.[0]?.resolutions?.length > 0) {
+            
+            // La lista 'resolutions' va de menor a mayor calidad.
+            // Cogemos la ÚLTIMA de la lista.
+            // Suele ser 640px, 960px o 1080px. Perfecta para móvil, ligera para datos.
+            const versiones = p.preview.images[0].resolutions;
+            const puntoMedio = versiones[versiones.length - 1];
+            
+            prev = puntoMedio.url.replace(/&amp;/g, '&');
+            
+        } else if (p.preview?.images?.[0]?.source) {
+            // Si no hay intermedias, usamos la Source (HD pero pesada)
+            prev = p.preview.images[0].source.url.replace(/&amp;/g, '&');
+        } else {
+            // Si todo falla, la URL cruda
+            prev = src;
+        }
     } 
-    // 2. Si NO es imagen (es video/gif desconocido), intentamos buscar una carátula HD
-    else if (p.preview && p.preview.images && p.preview.images[0]) {
-        prev = p.preview.images[0].source.url.replace(/&amp;/g, '&');
-    }
-
-    // 3. Si después de todo esto, 'prev' sigue siendo basura ("nsfw", "default"), lo matamos.
-    if (!prev || !prev.startsWith('http')) {
-        return; // Post inválido sin imagen mostrable
-    }
-    // -------------------------------------
-
-    // Lógica de Video (Reddit/Redgifs) - Prioridad sobre lo anterior
-    if (p.domain.includes('redgifs') || p.domain.includes('v.redd.it')) {
+    
+    // Lógica de Video (Igual que antes, intentamos buscar carátula HD)
+    else if (p.domain.includes('redgifs') || p.domain.includes('v.redd.it')) {
         const vid = p.preview?.reddit_video_preview?.fallback_url || p.secure_media?.reddit_video?.fallback_url;
         if (!vid) return;
-        
         src = vid; 
         type = 'vid';
         
-        // Intentamos recuperar la carátula del video si existe
-        if (p.preview?.images?.[0]?.source?.url) {
-             prev = p.preview.images[0].source.url.replace(/&amp;/g, '&');
+        // Para la "carátula" del video, también aplicamos la lógica del punto medio
+        if (p.preview?.images?.[0]?.resolutions?.length > 0) {
+            const versiones = p.preview.images[0].resolutions;
+            prev = versiones[versiones.length - 1].url.replace(/&amp;/g, '&');
+        } else if (p.preview?.images?.[0]?.source) {
+            prev = p.preview.images[0].source.url.replace(/&amp;/g, '&');
         }
     }
     
-    // Validación final de extensión para imágenes (para no colar htmls)
-    if(type === 'img' && !src.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return;
+    if (!prev || !prev.startsWith('http')) return; 
+    if (type === 'img' && !src.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return;
     
     renderCard(src, prev, type, p.title, `u/${p.author}`, 'reddit');
 }
