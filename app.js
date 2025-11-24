@@ -309,46 +309,91 @@ function processRedditPost(p) {
 }
 
 // --- 4CHAN (FULL SYSTEM) ---
-// --- AUTOCOMPLETADO DINÁMICO (API 4CHAN) ---
+
+// --- AUTOCOMPLETADO DINÁMICO 4CHAN (CUSTOM UI) ---
 
 async function initChanAutocomplete() {
-    const dl = document.getElementById('lista-tablones');
-    if (!dl) return;
-
-    // 1. ESTRATEGIA DE CACHÉ: Si ya tenemos la lista guardada, la usamos primero
+    // 1. Obtener lista (Caché o Red)
+    // Igual que antes, pero sin llenar datalist
     const cached = localStorage.getItem('sys_chan_boards');
-    if (cached) {
-        poblarDatalist(JSON.parse(cached));
-    }
-
-    // 2. ACTUALIZACIÓN SILENCIOSA: Buscamos la lista fresca en 4chan
+    
+    // Intentamos actualizar en segundo plano siempre
     try {
         const data = await fetchSmart('https://a.4cdn.org/boards.json');
-        
         if (data && data.boards) {
-            const cleanList = data.boards.map(b => ({
-                c: b.board,
-                n: b.title
-            }));
-
+            const cleanList = data.boards.map(b => ({ c: b.board, n: b.title }));
             localStorage.setItem('sys_chan_boards', JSON.stringify(cleanList));
-            poblarDatalist(cleanList);
-            console.log(`Tablones actualizados: ${cleanList.length}`);
         }
     } catch (e) {
-        console.warn("No se pudo actualizar tablones (usando caché):", e);
+        console.warn("No se pudo actualizar boards.json:", e);
     }
+    
+    // 2. Activar el listener del Input
+    setupChanInputListener();
 }
 
-function poblarDatalist(list) {
-    const dl = document.getElementById('lista-tablones');
-    dl.innerHTML = ''; 
+function setupChanInputListener() {
+    const inp = document.getElementById('chan-custom');
+    const box = document.getElementById('chan-sugerencias');
     
-    list.forEach(b => {
-        const opt = document.createElement('option');
-        opt.value = `/${b.c}/ - ${b.n}`; 
-        dl.appendChild(opt);
+    if (!inp || !box) return;
+
+    inp.addEventListener('input', () => {
+        const val = inp.value.toLowerCase().trim(); // Lo que escribes
+        
+        if (val.length < 1) {
+            box.style.display = 'none';
+            return;
+        }
+
+        // Recuperamos la lista de la memoria
+        const rawList = localStorage.getItem('sys_chan_boards');
+        if (!rawList) return;
+        const list = JSON.parse(rawList);
+
+        // --- FILTRO ESTRICTO POR CÓDIGO ---
+        // Solo buscamos si el CÓDIGO (c) empieza por lo que escribiste.
+        // Ignoramos el nombre (n).
+        const matches = list.filter(b => b.c.toLowerCase().startsWith(val));
+
+        renderChanSuggestions(matches, box, inp);
     });
+    
+    // Ocultar al hacer click fuera (básico)
+    document.addEventListener('click', (e) => {
+        if (e.target !== inp && e.target !== box) {
+            box.style.display = 'none';
+        }
+    });
+}
+
+function renderChanSuggestions(list, box, inp) {
+    box.innerHTML = '';
+    
+    if (list.length === 0) {
+        box.style.display = 'none';
+        return;
+    }
+
+    list.forEach(b => {
+        const item = document.createElement('div');
+        item.className = 'chan-suggestion-item';
+        
+        // Diseño: /g/ a la izquierda, "Technology" a la derecha en gris
+        item.innerHTML = `<span class="chan-code">/${b.c}/</span> <span class="chan-name">${b.n}</span>`;
+        
+        item.onclick = () => {
+            // Al hacer click, llenamos el input solo con el código limpio
+            inp.value = b.c; 
+            box.style.display = 'none';
+            // Opcional: Cargar automáticamente al seleccionar
+            // cargarCatalogo4Chan(); 
+        };
+        
+        box.appendChild(item);
+    });
+    
+    box.style.display = 'block';
 }
 
 // 1. FUNCIÓN UI: Mostrar/Ocultar input manual (Ponla junto a checkRedditInput)

@@ -54,7 +54,10 @@
                 <option value="b">/b/ - Random</option>
                 <option value="r">/r/ - Adult Requests</option>
                 <option value="custom">... Escribir Otro (/x/)</option>
-                <input type="text" id="chan-custom" list="lista-tablones" placeholder="Escribe código (g) o nombre..." style="display:none; margin-top: 5px;">
+                <div style="position:relative; width:100%;">
+                    <input type="text" id="chan-custom" placeholder="Escribe código (ej: g, v, wg)..." autocomplete="off" style="display:none; margin-top: 5px;">
+                    <div id="chan-sugerencias" class="sugerencias-box-chan"></div>
+                </div>
                 <datalist id="lista-tablones"></datalist>
             </select>
             

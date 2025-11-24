@@ -393,3 +393,36 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
     padding-left: 10px; /* Pequeño desplazamiento visual al tocar */
     transition: padding 0.1s;
 }
+/* --- AUTOCOMPLETADO 4CHAN (Estilo Lista) --- */
+.sugerencias-box-chan {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #111; /* Fondo oscuro */
+    border: 1px solid #333;
+    border-radius: 0 0 8px 8px;
+    z-index: 200;
+    max-height: 250px; /* Altura máxima antes de scroll */
+    overflow-y: auto; /* Scroll vertical activado */
+    display: none; /* Oculto por defecto */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+}
+
+.chan-suggestion-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #222;
+    color: #ddd;
+    font-family: monospace; /* Fuente hacker */
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.chan-suggestion-item:active {
+    background: #222; /* Efecto al tocar */
+}
+
+.chan-code { color: #00ffaa; font-weight: bold; }
+.chan-name { color: #666; font-size: 0.8rem; }
