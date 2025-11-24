@@ -489,10 +489,13 @@ async function cargarX() {
     } catch(e) { document.getElementById('loading-status').innerText = e.message; }
 }
 
-// --- RENDER GENERICO ---
+// --- RENDER GENERICO ACTUALIZADO ---
 function renderCard(src, prev, type, tags, badgeTxt, context) {
     const card = document.createElement('div'); card.className='tarjeta';
+    
+    // --- 1. MEDIA Y BADGES ---
     let media='', badge='';
+    // Definimos el badge del tipo de archivo (IMG, VID, GIF)
     if(type==='vid') {
         badge=`<span class="badge bg-vid">VID</span>`;
         media=`<div class="media-wrapper"><video class="media-content" controls loop playsinline preload="none" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
@@ -503,11 +506,46 @@ function renderCard(src, prev, type, tags, badgeTxt, context) {
         badge=`<span class="badge bg-img">IMG</span>`;
         media=`<div class="media-wrapper"><img class="media-content" src="${prev}" loading="lazy" onclick="abrirLightbox('${src}','img')"><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
     }
-    if(badgeTxt) badge = `<span class="badge bg-reddit">${badgeTxt}</span>`;
-    if(context==='x') badge = `<span class="badge bg-x">X</span>`;
-    let footer = `<div class="meta-footer">${badge} <span style="font-size:0.7rem;color:#aaa">${tags.substring(0,50)}</span></div>`;
-    if(context === 'r34') footer = `<div class="meta-footer"><div style="display:flex;align-items:center">${badge} <span class="btn-expand-tags" onclick="toggleTags(this)">Ver Etiquetas</span></div></div><div class="tags-drawer">${generarTagsHtml(tags)}</div>`;
-    card.innerHTML = media + footer;
+
+    // Badge de origen (Reddit, X)
+    let sourceBadge = '';
+    if(badgeTxt) sourceBadge = `<span class="badge bg-reddit">${badgeTxt}</span>`;
+    if(context==='x') sourceBadge = `<span class="badge bg-x">X</span>`;
+
+    // --- 2. FOOTER Y DRAWER (ESTRUCTURA TIKTOK) ---
+    let footerHtml = '';
+    
+    if(context === 'r34' || context === 'booru_generic') {
+        // MODO RULE34/BOORU (Con telón de etiquetas)
+        
+        // Preparamos una vista previa corta de los tags para el footer
+        const tagsArray = tags.split(' ').filter(t => t.length > 0);
+        const shortTagsStr = tagsArray.slice(0, 5).join(', '); // Primeros 5 tags
+        const remainingCount = tagsArray.length - 5;
+        const verMasTxt = remainingCount > 0 ? `+${remainingCount} más` : 'Ver detalles';
+
+        footerHtml = `
+            <div class="meta-footer">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    ${badge} <span class="badge" style="background:#3b82f6;">R34</span> </div>
+                <div class="meta-desc-preview" onclick="toggleTags(this)">
+                    ${shortTagsStr}... <span class="ver-mas">${verMasTxt}</span>
+                </div>
+            </div>
+
+            <div class="tags-drawer">
+                <div class="drawer-close-x" onclick="toggleTags(this)">✕</div>
+                <h3 style="color:#fff; margin: 0 0 10px 0; font-size:1.1rem;">Etiquetas</h3>
+                <div class="drawer-tags-container">
+                    ${generarTagsHtml(tags)} </div>
+            </div>
+        `;
+    } else {
+        // MODO NORMAL (Reddit, X) - Footer simple
+        footerHtml = `<div class="meta-footer">${badge} ${sourceBadge} <span style="font-size:0.7rem;color:#aaa; margin-left:10px;">${tags.substring(0,50)}...</span></div>`;
+    }
+
+    card.innerHTML = media + footerHtml;
     if(type==='vid') videoObserver.observe(card.querySelector('video'));
     document.getElementById('feed-infinito').appendChild(card);
 }
@@ -560,9 +598,22 @@ async function descargar(u) {
     }
 }
 function alternarGif(w,g,p) { const i=w.querySelector('img'); if(w.classList.contains('playing')){i.src=p;w.classList.remove('playing');}else{i.src=g;w.classList.add('playing');} }
+
+//NUEVA FUNCIÓN TOGGLE TAGS (Para abrir/cerrar el telón)
+
 function toggleTags(el) { 
-    const d = el.closest('.meta-footer').nextElementSibling; 
-    if(d.classList.contains('open')){d.classList.remove('open');el.innerText="Ver Etiquetas";}else{d.classList.add('open');el.innerText="Ocultar";} 
+    // Buscamos la tarjeta padre de donde se hizo click
+    const card = el.closest('.tarjeta');
+    // Dentro de esa tarjeta, buscamos el telón (drawer)
+    const drawer = card.querySelector('.tags-drawer');
+
+    if(drawer.classList.contains('open')){
+        // Si está abierto, lo cerramos
+        drawer.classList.remove('open');
+    } else {
+        // Si está cerrado, lo abrimos
+        drawer.classList.add('open');
+    }
 }
 function generarTagsHtml(t) { return t.split(' ').map(tag=>tag?`<span class="tag-chip" style="font-size:0.7rem;margin:2px" onclick="abrirModal('${tag}')">${tag}</span>`:'').join(''); }
 function restoreCatalogScroll() { requestAnimationFrame(() => { requestAnimationFrame(() => { window.scrollTo(0, scrollCatalogPos); }); }); }

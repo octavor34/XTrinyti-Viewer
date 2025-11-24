@@ -125,36 +125,43 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 
 .btn-choice:active { transform: scale(0.95); background: #333; }
 
-/* --- TIKTOK MODE (SCROLL SNAP) --- */
+/* =========================================
+   TIKTOK MODE & NUEVA UI
+   ========================================= */
 
-/* El contenedor se vuelve pantalla completa y magnético */
+/* --- Contenedor Principal (El Feed) --- */
 #feed-infinito.tiktok-mode {
-    height: calc(100vh - 65px); /* Restamos el header */
+    height: calc(100vh - 65px); /* Altura completa menos header */
     overflow-y: scroll;
-    scroll-snap-type: y mandatory; /* El efecto imán */
+    scroll-snap-type: y mandatory; /* Efecto magnético */
+    overscroll-behavior-y: contain; /* Evita rebotes */
     padding: 0 !important;
     margin: 0 !important;
-    max-width: 100% !important;
     background: #000;
 }
 
-/* Cada tarjeta ocupa exactamente una pantalla */
+/* --- La Tarjeta (Cada pantalla) --- */
 #feed-infinito.tiktok-mode .tarjeta {
     height: 100%;
     width: 100%;
     margin: 0;
     border-radius: 0;
     border: none;
-    scroll-snap-align: start; /* Aquí se pega el scroll */
-    scroll-snap-stop: always;
+    /* Separador sutil entre posts en lugar de bordes gruesos */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+    
+    scroll-snap-align: start;
+    scroll-snap-stop: always; /* FRENADO FUERTE (evita saltos) */
+    
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     background: #000;
+    overflow: hidden; /* Importante para contener el telón */
 }
 
-/* Forzamos a la imagen/video a centrarse sin estirarse horrible */
+/* --- Media Wrapper (Centrado de imagen/video) --- */
 #feed-infinito.tiktok-mode .media-wrapper {
     height: 100%;
     width: 100%;
@@ -167,38 +174,119 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 #feed-infinito.tiktok-mode .media-content {
     max-height: 100%;
     max-width: 100%;
-    height: auto;
     width: auto;
-    object-fit: contain; /* Muestra todo el contenido */
+    height: auto;
+    object-fit: contain; /* Muestra la imagen entera sin recortar */
 }
 
-/* Metadatos flotantes (gradiente negro abajo) */
+/* --- Footer de Metadatos (Overlay estilo TikTok) --- */
 #feed-infinito.tiktok-mode .meta-footer {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
-    padding: 40px 15px 20px 15px;
+    /* Degradado oscuro para que el texto blanco se lea bien */
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 15%, rgba(0,0,0,0.5) 60%, transparent 100%);
+    padding: 60px 15px 25px 15px; /* Espacio extra arriba */
     box-sizing: border-box;
     z-index: 20;
-    pointer-events: none; /* Deja pasar clicks a la imagen */
     border: none;
+    display: flex;
+    flex-direction: column; /* Apilar elementos verticalmente */
+    gap: 8px;
+    align-items: flex-start;
+    pointer-events: none; /* Dejar pasar clicks a la imagen */
 }
 
-/* Reactivamos clicks solo para los botones y textos */
-#feed-infinito.tiktok-mode .meta-footer * {
-    pointer-events: auto;
-}
+/* Reactivar clicks para los elementos interactivos del footer */
+#feed-infinito.tiktok-mode .meta-footer * { pointer-events: auto; }
 
-/* Botón de descarga flotante y más grande */
+/* Estilo para el texto descriptivo/tags truncados */
+.meta-desc-preview {
+    font-size: 0.9rem;
+    color: #eee;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2; /* Máximo 2 líneas */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    cursor: pointer;
+}
+.meta-desc-preview span.ver-mas { color: var(--accent); font-weight: bold; margin-left: 5px; }
+
+/* Botón de descarga flotante */
 #feed-infinito.tiktok-mode .btn-download {
     top: auto;
-    bottom: 90px; /* Encima del texto */
+    bottom: 100px; /* Más arriba que el texto */
     right: 15px;
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
     background: rgba(255,255,255,0.15);
     border: 1px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(5px);
+}
+
+/* --- EL TELÓN DE ETIQUETAS (Overlay Completo) --- */
+
+/* Estado base (oculto) */
+.tags-drawer { display: none; }
+
+/* Estado TikTok activo */
+#feed-infinito.tiktok-mode .tags-drawer {
+    position: absolute; /* Cubre la tarjeta exactamente */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 10, 0.96); /* Fondo oscuro casi opaco */
+    z-index: 150; /* Por encima de todo (footer, download btn) */
+    padding: 20px;
+    box-sizing: border-box;
+    flex-direction: column;
+    backdrop-filter: blur(10px); /* Efecto borroso guapo */
+}
+
+/* Cuando se abre */
+#feed-infinito.tiktok-mode .tags-drawer.open {
+    display: flex;
+    animation: slideUpIn 0.25s ease-out; /* Animación de entrada */
+}
+@keyframes slideUpIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* El botón X para cerrar */
+.drawer-close-x {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 2rem;
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    width: 40px; height: 40px;
+    display: flex; justify-content: center; align-items: center;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Contenedor de los chips dentro del telón */
+.drawer-tags-container {
+    margin-top: 50px; /* Espacio para la X */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    overflow-y: auto; /* Scroll si hay muchos tags */
+    max-height: 80vh;
+}
+
+/* Ajuste de los chips de tags para que se vean mejor en el overlay */
+#feed-infinito.tiktok-mode .tags-drawer .tag-chip {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    font-size: 0.8rem;
+    padding: 8px 12px;
 }
