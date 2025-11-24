@@ -667,51 +667,91 @@ function renderCard(src, prev, type, tags, badgeTxt, context) {
     document.getElementById('feed-infinito').appendChild(card);
 }
 
+// LISTA DE PROXIES EXCLUSIVA PARA DESCARGAS (Binary friendly)
+const DOWNLOAD_PROXIES = [
+    'https://corsproxy.io/?',                    // Opción A: Rápida
+    'https://api.allorigins.win/raw?url=',       // Opción B: Fiable
+    'https://api.codetabs.com/v1/proxy/?quest='  // Opción C: Backup
+];
+
 async function descargar(u) { 
-    // Feedback visual inmediato: Cambiamos el icono
     const btn = event.currentTarget; 
     const iconOriginal = btn.innerText;
-    btn.innerText = "⏳"; // Reloj de arena mientras baja
     
-    try {
-        // Truco: Usamos corsproxy.io para que Rule34 no nos bloquee la descarga directa por script
-        const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(u);
-        
-        const response = await fetch(proxyUrl);
-        if(!response.ok) throw new Error("Error red");
-        
-        // Convertimos la respuesta en un objeto binario (Blob)
-        const blob = await response.blob(); 
-        const blobUrl = window.URL.createObjectURL(blob);
-        
-        // Creamos un enlace invisible temporal
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = blobUrl;
-        
-        // Intentamos sacar el nombre del archivo original
-        const filename = u.split('/').pop() || 'download_r34';
-        a.download = filename;
-        
-        // Click fantasma
-        document.body.appendChild(a);
-        a.click();
-        
-        // Limpieza del crimen
-        window.URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(a);
-        
-        btn.innerText = "✅"; // Éxito
+    // Feedback visual: Si es video, avisamos que puede tardar
+    const esVideo = u.match(/\.(mp4|webm|mov)$/i);
+    btn.innerText = esVideo ? "🎞️" : "⏳"; 
+    
+    // Evitamos pulsaciones dobles
+    if(btn.disabled) return;
+    btn.disabled = true;
+
+    let downloadSuccess = false;
+
+    // INTENTO DE DESCARGA ESCALONADA
+    for (let proxyBase of DOWNLOAD_PROXIES) {
+        try {
+            console.log(`Intentando descarga con: ${proxyBase}`);
+            
+            // Construimos la URL del proxy
+            // Nota: allorigins y codetabs necesitan la URL tal cual, corsproxy la necesita encodeada a veces, 
+            // pero encodeURIComponent suele ser seguro para todos en la query string.
+            const target = proxyBase + encodeURIComponent(u);
+            
+            const response = await fetch(target);
+            if(!response.ok) throw new Error(`Error HTTP ${response.status}`);
+            
+            const blob = await response.blob(); 
+            
+            // Si el blob está vacío o corrupto, pasamos al siguiente
+            if (blob.size < 100) throw new Error("Archivo vacío o corrupto");
+
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            
+            // Nombre del archivo limpio
+            const cleanName = u.split('/').pop().split('?')[0] || `descarga_${Date.now()}`;
+            a.download = cleanName;
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            // Limpieza
+            setTimeout(() => {
+                window.URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(a);
+            }, 100);
+            
+            downloadSuccess = true;
+            break; // ¡ÉXITO! Salimos del bucle
+            
+        } catch (e) {
+            console.warn(`Fallo proxy descarga (${proxyBase}):`, e.message);
+            // Continuamos al siguiente proxy del bucle...
+        }
+    }
+
+    btn.disabled = false;
+
+    if (downloadSuccess) {
+        btn.innerText = "✅"; 
         setTimeout(() => btn.innerText = iconOriginal, 2000);
+    } else {
+        console.error("Todos los proxies de descarga fallaron.");
+        btn.innerText = "⚠️"; 
         
-    } catch (e) {
-        console.error("Fallo descarga directa:", e);
-        btn.innerText = "❌"; 
-        // Fallback: Si falla el método hacker, abrimos pestaña como los plebeyos
+        // ULTIMO RECURSO: Abrir pestaña
+        // Le damos un pequeño delay para que el usuario vea el icono de error
         setTimeout(() => {
-            window.open(u, '_blank');
+            // Confirmación opcional para no asustar al usuario
+            if(confirm("No se pudo descargar directamente (archivo muy pesado o bloqueado). ¿Abrir en nueva pestaña para guardar?")) {
+                window.open(u, '_blank');
+            }
             btn.innerText = iconOriginal;
-        }, 1000);
+        }, 500);
     }
 }
 function alternarGif(w,g,p) { const i=w.querySelector('img'); if(w.classList.contains('playing')){i.src=p;w.classList.remove('playing');}else{i.src=g;w.classList.add('playing');} }
