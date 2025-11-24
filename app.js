@@ -91,12 +91,22 @@ function cambiarModo() {
     // 1. MEMORIA
     localStorage.setItem('sys_last_mode', val);
 
-    // 2. LIMPIEZA VISUAL (Fix fantasmas)
-    document.getElementById('feed-infinito').innerHTML = '';
+    // 2. LIMPIEZA Y PREPARACIÓN
+    const feed = document.getElementById('feed-infinito');
+    feed.innerHTML = '';
     document.getElementById('centinela-scroll').style.display = 'none';
     document.getElementById('loading-status').style.display = 'none';
 
-    // 3. UI
+    // --- AQUÍ ESTÁ LA MAGIA TIKTOK ---
+    // Solo activamos el modo swipe en Rule34 (puedes añadir más si quieres)
+    if (val === 'r34') {
+        feed.classList.add('tiktok-mode');
+    } else {
+        feed.classList.remove('tiktok-mode');
+    }
+    // ---------------------------------
+
+    // 3. UI UPDATE
     document.querySelectorAll('.input-group').forEach(el => el.style.display = 'none');
     const title = document.getElementById('app-title');
     
@@ -110,11 +120,7 @@ function cambiarModo() {
         document.getElementById('chan-inputs').style.display = 'block';
         document.documentElement.style.setProperty('--accent', '#009688');
         title.innerText = "4CHAN BROWSER";
-        
-        // Inicializar botón y menú de 4chan
-        if(typeof setupDropdown === 'function') {
-            setupDropdown('catalog');
-        }
+        if(typeof setupDropdown === 'function') setupDropdown('catalog');
     } else if(val === 'reddit') {
         modoActual = 'reddit';
         document.getElementById('reddit-inputs').style.display = 'block';
@@ -506,7 +512,53 @@ function renderCard(src, prev, type, tags, badgeTxt, context) {
     document.getElementById('feed-infinito').appendChild(card);
 }
 
-function descargar(u) { window.open(u, '_blank'); }
+async function descargar(u) { 
+    // Feedback visual inmediato: Cambiamos el icono
+    const btn = event.currentTarget; 
+    const iconOriginal = btn.innerText;
+    btn.innerText = "⏳"; // Reloj de arena mientras baja
+    
+    try {
+        // Truco: Usamos corsproxy.io para que Rule34 no nos bloquee la descarga directa por script
+        const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(u);
+        
+        const response = await fetch(proxyUrl);
+        if(!response.ok) throw new Error("Error red");
+        
+        // Convertimos la respuesta en un objeto binario (Blob)
+        const blob = await response.blob(); 
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        // Creamos un enlace invisible temporal
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        
+        // Intentamos sacar el nombre del archivo original
+        const filename = u.split('/').pop() || 'download_r34';
+        a.download = filename;
+        
+        // Click fantasma
+        document.body.appendChild(a);
+        a.click();
+        
+        // Limpieza del crimen
+        window.URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(a);
+        
+        btn.innerText = "✅"; // Éxito
+        setTimeout(() => btn.innerText = iconOriginal, 2000);
+        
+    } catch (e) {
+        console.error("Fallo descarga directa:", e);
+        btn.innerText = "❌"; 
+        // Fallback: Si falla el método hacker, abrimos pestaña como los plebeyos
+        setTimeout(() => {
+            window.open(u, '_blank');
+            btn.innerText = iconOriginal;
+        }, 1000);
+    }
+}
 function alternarGif(w,g,p) { const i=w.querySelector('img'); if(w.classList.contains('playing')){i.src=p;w.classList.remove('playing');}else{i.src=g;w.classList.add('playing');} }
 function toggleTags(el) { 
     const d = el.closest('.meta-footer').nextElementSibling; 

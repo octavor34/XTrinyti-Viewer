@@ -124,3 +124,81 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 }
 
 .btn-choice:active { transform: scale(0.95); background: #333; }
+
+/* --- TIKTOK MODE (SCROLL SNAP) --- */
+
+/* El contenedor se vuelve pantalla completa y magnético */
+#feed-infinito.tiktok-mode {
+    height: calc(100vh - 65px); /* Restamos el header */
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory; /* El efecto imán */
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    background: #000;
+}
+
+/* Cada tarjeta ocupa exactamente una pantalla */
+#feed-infinito.tiktok-mode .tarjeta {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    scroll-snap-align: start; /* Aquí se pega el scroll */
+    scroll-stop-always: always;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+}
+
+/* Forzamos a la imagen/video a centrarse sin estirarse horrible */
+#feed-infinito.tiktok-mode .media-wrapper {
+    height: 100%;
+    width: 100%;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#feed-infinito.tiktok-mode .media-content {
+    max-height: 100%;
+    max-width: 100%;
+    height: auto;
+    width: auto;
+    object-fit: contain; /* Muestra todo el contenido */
+}
+
+/* Metadatos flotantes (gradiente negro abajo) */
+#feed-infinito.tiktok-mode .meta-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
+    padding: 40px 15px 20px 15px;
+    box-sizing: border-box;
+    z-index: 20;
+    pointer-events: none; /* Deja pasar clicks a la imagen */
+    border: none;
+}
+
+/* Reactivamos clicks solo para los botones y textos */
+#feed-infinito.tiktok-mode .meta-footer * {
+    pointer-events: auto;
+}
+
+/* Botón de descarga flotante y más grande */
+#feed-infinito.tiktok-mode .btn-download {
+    top: auto;
+    bottom: 90px; /* Encima del texto */
+    right: 15px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+}
