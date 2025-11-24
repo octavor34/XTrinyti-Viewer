@@ -146,7 +146,7 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
     border-radius: 0;
     border: none;
     scroll-snap-align: start; /* Aquí se pega el scroll */
-    scroll-stop-always: always;
+    scroll-snap-stop: always;
     position: relative;
     display: flex;
     justify-content: center;
