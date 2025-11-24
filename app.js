@@ -266,48 +266,50 @@ async function cargarPaginaReddit() {
     } catch(e) { document.getElementById('loading-status').innerText = `Error: ${e.message}`; } finally { cargando=false; }
 }
 function processRedditPost(p) {
-    if(p.is_self) return; // Ignorar post de solo texto
+    if (p.is_self) return; // Ignoramos texto puro
     
-    // Filtro básico de miniaturas rotas
-    if (!p.thumbnail || p.thumbnail === 'self' || p.thumbnail === 'default' || p.thumbnail === 'nsfw') {
-        if(!p.preview?.images) return; 
-    }    
-    
-    let src = p.url; 
-    let prev = p.thumbnail; 
+    let src = p.url;
+    let prev = p.thumbnail;
     let type = detectType(src);
 
-    // --- FIX IMÁGENES PEQUEÑAS ---
-    // Reddit da una miniatura en 'thumbnail' (muy pequeña).
-    // Intentamos buscar la imagen 'preview' de alta resolución (source) 
-    // o usamos la URL principal directamente.
-    if (p.preview && p.preview.images && p.preview.images[0]) {
-        // Usamos la versión 'source' que es HD
+    // --- CORRECCIÓN DE PANTALLA NEGRA ---
+    
+    // 1. Si detectamos que es una IMAGEN (jpg/png/webp), 
+    // forzamos que la "vista previa" sea la imagen original completa.
+    // Esto arregla los thumbnails "default" y la baja calidad.
+    if (type === 'img') {
+        prev = src; 
+    } 
+    // 2. Si NO es imagen (es video/gif desconocido), intentamos buscar una carátula HD
+    else if (p.preview && p.preview.images && p.preview.images[0]) {
         prev = p.preview.images[0].source.url.replace(/&amp;/g, '&');
-    } else if (type === 'img') {
-        // Si no hay preview pero es imagen, usamos la original como previa
-        prev = src;
     }
-    // -----------------------------
 
-    // Lógica de Video (Reddit/Redgifs)
+    // 3. Si después de todo esto, 'prev' sigue siendo basura ("nsfw", "default"), lo matamos.
+    if (!prev || !prev.startsWith('http')) {
+        return; // Post inválido sin imagen mostrable
+    }
+    // -------------------------------------
+
+    // Lógica de Video (Reddit/Redgifs) - Prioridad sobre lo anterior
     if (p.domain.includes('redgifs') || p.domain.includes('v.redd.it')) {
         const vid = p.preview?.reddit_video_preview?.fallback_url || p.secure_media?.reddit_video?.fallback_url;
         if (!vid) return;
+        
         src = vid; 
         type = 'vid';
-        // Para videos, intentamos mantener una preview estática HD si existe
+        
+        // Intentamos recuperar la carátula del video si existe
         if (p.preview?.images?.[0]?.source?.url) {
              prev = p.preview.images[0].source.url.replace(/&amp;/g, '&');
         }
     }
     
-    // Validación final de imagen
-    if(type==='img' && !src.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return;
+    // Validación final de extensión para imágenes (para no colar htmls)
+    if(type === 'img' && !src.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return;
     
     renderCard(src, prev, type, p.title, `u/${p.author}`, 'reddit');
 }
-
 // --- 4CHAN (FULL SYSTEM) ---
 
 // --- AUTOCOMPLETADO DINÁMICO 4CHAN (CUSTOM UI) ---
