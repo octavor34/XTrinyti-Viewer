@@ -619,30 +619,142 @@ function generarTagsHtml(t) { return t.split(' ').map(tag=>tag?`<span class="tag
 function restoreCatalogScroll() { requestAnimationFrame(() => { requestAnimationFrame(() => { window.scrollTo(0, scrollCatalogPos); }); }); }
 function cargarSiguientePagina() { document.getElementById('centinela-scroll').innerText="Cargando..."; if(modoActual==='r34')cargarPaginaR34(paginaActual+1); if(modoActual==='reddit')cargarPaginaReddit(); }
 
-// Lightbox
+// --- LIGHTBOX AVANZADO (ZOOM, PINCH & PAN) ---
 const lb = document.getElementById('lightbox');
 const lbLayer = document.getElementById('lightbox-transform-layer');
-let zoom = { s: 1, x: 0, y: 0 }; let gesturesInitialized = false; let lastTapTime = 0; let pointerActive = false;
+
+// Estado del sistema de gestos
+let state = {
+    scale: 1,
+    panning: false,
+    pointX: 0,
+    pointY: 0,
+    startX: 0,
+    startY: 0,
+    pinchDist: 0
+};
+
 function abrirLightbox(u, t) {
-    lb.style.display = 'flex'; resetZoom();
-    if (t === 'vid') { lbLayer.innerHTML = `<video src="${u}" controls autoplay style="max-width:100%;max-height:100%"></video>`; } 
-    else { lbLayer.innerHTML = `<img id="lightbox-img" src="${u}" draggable="false">`; initGestures(); }
+    lb.style.display = 'flex';
+    resetZoom();
+    lbLayer.innerHTML = '';
+    
+    if (t === 'vid') {
+        lbLayer.innerHTML = `<video src="${u}" controls autoplay style="max-width:100%;max-height:100%; box-shadow:0 0 50px rgba(0,0,0,0.5)"></video>`;
+    } else {
+        const img = document.createElement('img');
+        img.src = u;
+        img.id = 'lightbox-img';
+        img.draggable = false;
+        img.style.cssText = "max-width:100%; max-height:100%; object-fit:contain; pointer-events:auto; touch-action:none;";
+        lbLayer.appendChild(img);
+        initGestures(img);
+    }
 }
-function cerrarLightbox() { const v = lbLayer.querySelector('video'); if (v && typeof v.pause === 'function') try { v.pause(); } catch (_) {} lb.style.display = 'none'; lbLayer.innerHTML = ''; resetZoom(); }
-function resetZoom() { zoom = { s: 1, x: 0, y: 0 }; updateZoom(); }
-function updateZoom() { lbLayer.style.transform = `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.s})`; }
-function initGestures() {
-    if (gesturesInitialized) return; gesturesInitialized = true;
-    lbLayer.addEventListener('click', (e) => { const img = e.target && e.target.id === 'lightbox-img' ? e.target : null; if (!img) return; const now = Date.now(); if (now - lastTapTime < 300) { e.preventDefault(); toggleZoom(); } lastTapTime = now; });
-    lb.addEventListener('touchstart', startDrag, { passive: false }); lb.addEventListener('touchmove', drag, { passive: false }); lb.addEventListener('touchend', endDrag);
-    lb.addEventListener('mousedown', (e) => { if (zoom.s === 1) return; pointerActive = true; startDrag(e); });
-    window.addEventListener('mousemove', (e) => { if (!pointerActive) return; drag(e); });
-    window.addEventListener('mouseup', (e) => { if (!pointerActive) return; pointerActive = false; endDrag(e); });
+
+function cerrarLightbox() {
+    const v = lbLayer.querySelector('video');
+    if (v) { try { v.pause(); v.src=""; } catch(_){} }
+    lb.style.display = 'none';
+    lbLayer.innerHTML = '';
+    resetZoom();
 }
-function toggleZoom() { if (zoom.s > 1) { resetZoom(); } else { zoom.s = 2.5; updateZoom(); } }
-function startDrag(e) { const tgt = e.target || e.srcElement; if (tgt && tgt.closest && tgt.closest('.lb-btn')) return; if (zoom.s === 1) return; if (e.type === 'touchstart') e.preventDefault(); zoom.panning = true; const point = (e.touches && e.touches[0]) ? e.touches[0] : e; zoom.startX = point.clientX - zoom.x; zoom.startY = point.clientY - zoom.y; lbLayer.style.transition = 'none'; }
-function drag(e) { if (!zoom.panning) return; if (e.type === 'touchmove') e.preventDefault(); const point = (e.touches && e.touches[0]) ? e.touches[0] : e; zoom.x = point.clientX - zoom.startX; zoom.y = point.clientY - zoom.startY; const maxOffset = 3000; zoom.x = Math.max(-maxOffset, Math.min(maxOffset, zoom.x)); zoom.y = Math.max(-maxOffset, Math.min(maxOffset, zoom.y)); updateZoom(); }
-function endDrag() { zoom.panning = false; lbLayer.style.transition = 'transform 0.2s ease-out'; if (zoom.s < 1) { resetZoom(); } }
+
+function resetZoom() {
+    state = { scale: 1, panning: false, pointX: 0, pointY: 0, startX: 0, startY: 0, pinchDist: 0 };
+    updateTransform();
+}
+
+function updateTransform() {
+    lbLayer.style.transform = `translate(${state.pointX}px, ${state.pointY}px) scale(${state.scale})`;
+}
+
+// --- MOTOR DE GESTOS (TOUCH & MOUSE) ---
+function initGestures(target) {
+    let lastTap = 0;
+    
+    // 1. DOBLE TAP (Zoom Escalonado)
+    target.addEventListener('click', (e) => {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+            stepZoom();
+        }
+        lastTap = now;
+    });
+
+    // 2. TOUCH START
+    lb.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            state.panning = false;
+            state.pinchDist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+        } else if (e.touches.length === 1) {
+            if (state.scale > 1) { 
+                state.panning = true;
+                state.startX = e.touches[0].clientX - state.pointX;
+                state.startY = e.touches[0].clientY - state.pointY;
+            }
+        }
+    }, {passive: false});
+
+    // 3. TOUCH MOVE
+    lb.addEventListener('touchmove', (e) => {
+        e.preventDefault(); 
+
+        if (e.touches.length === 2) {
+            // PINCH
+            const newDist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            
+            if (state.pinchDist > 0) {
+                const diff = newDist / state.pinchDist;
+                state.scale = Math.min(Math.max(1, state.scale * diff), 10); 
+                updateTransform();
+                state.pinchDist = newDist; 
+            }
+            
+        } else if (e.touches.length === 1 && state.panning && state.scale > 1) {
+            // PAN
+            state.pointX = e.touches[0].clientX - state.startX;
+            state.pointY = e.touches[0].clientY - state.startY;
+            
+            const limitX = (window.innerWidth * state.scale - window.innerWidth) / 2;
+            const limitY = (window.innerHeight * state.scale - window.innerHeight) / 2;
+            
+            if(state.pointX > limitX + 100) state.pointX = limitX + 100;
+            if(state.pointX < -limitX - 100) state.pointX = -limitX - 100;
+            if(state.pointY > limitY + 100) state.pointY = limitY + 100;
+            if(state.pointY < -limitY - 100) state.pointY = -limitY - 100;
+
+            updateTransform();
+        }
+    }, {passive: false});
+
+    // 4. TOUCH END
+    lb.addEventListener('touchend', (e) => {
+        state.panning = false;
+        if (e.touches.length < 2) state.pinchDist = 0;
+        if (state.scale < 1) {
+            state.scale = 1; state.pointX = 0; state.pointY = 0;
+            lbLayer.style.transition = 'transform 0.3s ease';
+            updateTransform();
+            setTimeout(() => { lbLayer.style.transition = 'none'; }, 300);
+        }
+    });
+}
+
+function stepZoom() {
+    lbLayer.style.transition = 'transform 0.2s ease-out';
+    if (state.scale < 2) state.scale = 2.5; 
+    else if (state.scale < 4.5) state.scale = 6.0; 
+    else { state.scale = 1; state.pointX = 0; state.pointY = 0; }
+    updateTransform();
+    setTimeout(() => { lbLayer.style.transition = 'none'; }, 200);
+}
 
 // Observers
 const videoObserver = new IntersectionObserver((entries, obs) => { entries.forEach(entry => { const video = entry.target; if (entry.isIntersecting) { video.preload = 'metadata'; const onLoaded = () => { obs.unobserve(video); video.removeEventListener('loadedmetadata', onLoaded); }; video.addEventListener('loadedmetadata', onLoaded); } }); }, { rootMargin: '300px' });
