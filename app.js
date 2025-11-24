@@ -738,7 +738,7 @@ function stepZoom() {
 }
 
 // ==========================================
-// AUTOCOMPLETADO (RULE34 - MODO DIRECTO)
+// AUTOCOMPLETADO (LÓGICA HÍBRIDA)
 // ==========================================
 
 const inp = document.getElementById('input-tags-real');
@@ -747,9 +747,8 @@ const rBox = document.getElementById('sugerencias-box');
 inp.addEventListener('input', (e) => {
     const val = inp.value;
     
-    // 1. Si es muy corto o NO estamos en modo Rule34, no hacemos nada
-    // (Esto evita errores si estás en Reddit o 4chan)
-    if (val.trim().length < 2 || (modoActual !== 'r34' && modoActual !== 'booru_generic')) { 
+    // 1. Limpieza básica
+    if (val.trim().length < 2) { 
         rBox.style.display = 'none'; 
         return; 
     }
@@ -757,60 +756,119 @@ inp.addEventListener('input', (e) => {
     clearTimeout(timerDebounce);
     timerDebounce = setTimeout(async () => {
         try {
-            // Rule34 usa guiones bajos para buscar
-            const query = val.trim().replace(/ /g, '_');
+            // --- BIFURCACIÓN DE LÓGICA ---
             
-            // Llamada DIRECTA a la API de Rule34
-            const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
+            // CASO A: RULE34 (Legacy / Booru Genérico)
+            if (modoActual === 'r34' || modoActual === 'booru_generic') {
+                const query = val.trim().replace(/ /g, '_');
+                const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
+                const data = await fetchSmart(url);
+                mostrarSugerenciasR34(data);
+            } 
             
-            // Usamos fetchSmart para saltarnos posibles bloqueos
-            const data = await fetchSmart(url);
+            // CASO B: ANIME-PICTURES (Lógica Compleja)
+            else if (modoActual === 'anime_pictures') {
+                // AP usa espacios, no guiones bajos. Y su endpoint devuelve mucha basura que hay que filtrar.
+                const query = val.trim(); 
+                // Usamos el endpoint v3 definido en drivers o hardcodeado aquí por seguridad
+                const url = `https://anime-pictures.net/api/v3/tags?lang=en&tag=${encodeURIComponent(query)}&page=0&limit=8`;
+                
+                const data = await fetchSmart(url);
+                // AP devuelve { success: true, tags: [...] }
+                if (data && data.success === true && data.tags) {
+                    mostrarSugerenciasAP(data.tags);
+                } else {
+                    rBox.style.display = 'none';
+                }
+            }
             
-            mostrarSugerenciasR34(data);
+            // Otros modos (Reddit/4Chan) no usan este input
+            else {
+                rBox.style.display = 'none';
+            }
+
         } catch (e) {
-            console.warn("Error autocompletado:", e);
+            console.warn("Error en autocompletado:", e);
         }
-    }, 300);
+    }, 300); // 300ms de espera para no saturar la red
 });
 
+// --- RENDERIZADO RULE34 (Simple) ---
 function mostrarSugerenciasR34(data) {
     rBox.innerHTML = '';
-    
-    // Validación: Rule34 devuelve un Array puro: [{label:..., value:...}]
     if (!data || !Array.isArray(data) || data.length === 0) { 
-        rBox.style.display = 'none'; 
-        return; 
+        rBox.style.display = 'none'; return; 
     }
 
-    // Mostramos máximo 8 sugerencias
     data.slice(0, 8).forEach(item => {
-        const d = document.createElement('div');
-        d.className = 'sugerencia-item';
-        
-        // Formato: "tag (cantidad)"
-        // Extraemos la cantidad para que se vea bonito en gris
-        let count = "";
-        if (item.label && item.label.includes('(')) {
-            count = item.label.split('(')[1].replace(')', '');
-        }
-        
-        d.innerHTML = `<span>${item.value}</span><span style="color:#666; font-size:0.8rem">${count}</span>`;
-        
-        d.onclick = () => {
-            // Al hacer click, añadimos el tag a la lista
-            agregarTag(item.value);
-            
-            // Limpiamos input y cerramos lista
-            inp.value = '';
-            rBox.style.display = 'none';
-            inp.focus();
-        };
-        
-        rBox.appendChild(d);
+        crearElementoSugerencia(item.value, item.label, 'r34');
     });
-    
     rBox.style.display = 'block';
 }
+
+// --- RENDERIZADO ANIME-PICTURES (Complejo) ---
+function mostrarSugerenciasAP(tagsArray) {
+    rBox.innerHTML = '';
+    if (!tagsArray || tagsArray.length === 0) {
+        rBox.style.display = 'none'; return;
+    }
+
+    tagsArray.forEach(tagObj => {
+        // AP devuelve objetos: { "tag": "nombre", "num_pub": 1234, "category": 1 ... }
+        // La etiqueta label para mostrar la armamos nosotros: "nombre (1234)"
+        const nombre = tagObj.tag;
+        const count = tagObj.num_pub ? `(${tagObj.num_pub})` : '';
+        const labelCompleto = `${nombre} ${count}`;
+        
+        crearElementoSugerencia(nombre, labelCompleto, 'ap');
+    });
+    rBox.style.display = 'block';
+}
+
+// --- FACTORÍA COMÚN DE DOM ---
+function crearElementoSugerencia(valorReal, textoMostrar, origen) {
+    const d = document.createElement('div');
+    d.className = 'sugerencia-item';
+    
+    // Estética: separar el nombre del contador si existe paréntesis
+    let html = `<span>${valorReal}</span>`;
+    if (textoMostrar.includes('(')) {
+        const parts = textoMostrar.split('(');
+        html = `<span>${parts[0]}</span><span style="color:#666; font-size:0.8rem; margin-left:auto;">(${parts[1]}</span>`;
+    }
+    
+    d.innerHTML = html;
+    
+    d.onclick = () => {
+        // AP prefiere espacios, R34 guiones bajos. 
+        // Si es AP, no forzamos el guion bajo.
+        const tagFinal = origen === 'ap' ? valorReal : valorReal.replace(/ /g, '_');
+        
+        agregarTag(tagFinal);
+        inp.value = '';
+        rBox.style.display = 'none';
+        inp.focus();
+    };
+    
+    rBox.appendChild(d);
+}
+
+// Eventos de teclado (Enter y Backspace) se mantienen igual
+inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { 
+        e.preventDefault(); 
+        const t = inp.value.trim(); 
+        if(t) { 
+            // Detección rápida de contexto para formatear al dar Enter manual
+            const tagFinal = modoActual === 'anime_pictures' ? t : t.replace(/ /g, '_');
+            agregarTag(tagFinal); 
+            inp.value = ''; 
+            rBox.style.display = 'none'; 
+        } 
+    }
+    if (e.key === 'Backspace' && !inp.value) { misTags.pop(); renderChips(); }
+});
+
 inp.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); const t = inp.value.trim(); if(t) { agregarTag(t.replace(/ /g, '_')); inp.value = ''; rBox.style.display = 'none'; } }
     if (e.key === 'Backspace' && !inp.value) { misTags.pop(); renderChips(); }
