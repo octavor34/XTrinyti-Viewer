@@ -28,6 +28,24 @@ let scrollCatalogPos = 0;
 let threadFilterMode = 'all'; 
 let threadViewMode = 'media'; 
 
+// --- SITE CONFIGURATION (BOORUS) ---
+const BOORU_SITES = {
+    'r34': {
+        url: 'https://api.rule34.xxx',
+        endpoint: '/index.php?page=dapi&s=post&q=index&json=1',
+        key_needed: true,
+        adapter: 'standard' // Standard Rule34/Gelbooru
+    },
+    'anime_pictures': {
+        url: 'https://anime-pictures.net',
+        endpoint: '/api/v3/posts?lang=en', // API V3 Specific
+        key_needed: false,
+        adapter: 'ap_v3' // Requires translation
+    }
+};
+
+let currentBooru = 'r34';
+
 // --- UI HELPERS ---
 function toggleMenu() {
     const p = document.getElementById('panel-control');
@@ -89,47 +107,57 @@ function cambiarModo() {
     const val = document.getElementById('source-selector').value;
     localStorage.setItem('sys_last_mode', val);
 
-    // Limpieza
+    // Visual Cleanup
     const feed = document.getElementById('feed-infinito');
     feed.innerHTML = '';
     document.getElementById('centinela-scroll').style.display = 'none';
     document.getElementById('loading-status').style.display = 'none';
 
-    // --- ACTIVACIÓN DEL MODO TIKTOK (AÑADIDO REDDIT) ---
-    // Ahora Reddit también usa el scroll magnético
-    if (val === 'r34' || val === 'reddit') {
-        feed.classList.add('tiktok-mode');
-    } else {
-        feed.classList.remove('tiktok-mode');
-    }
-    // ---------------------------------------------------
-
-    document.querySelectorAll('.input-group').forEach(el => el.style.display = 'none');
-    const title = document.getElementById('app-title');
-    
-    // ... (el resto de la función sigue igual con tus ifs de r34, 4chan, etc)
-    if(val === 'r34') {
-        modoActual = 'r34';
+    // --- BOORU DETECTION (R34 & ANIME-PICTURES) ---
+    if (BOORU_SITES[val]) {
+        modoActual = 'booru_generic';
+        currentBooru = val; 
+        
+        // Reuse R34 interface and activate TikTok mode
         document.getElementById('r34-inputs').style.display = 'block';
-        document.documentElement.style.setProperty('--accent', '#3b82f6');
-        title.innerText = "RULE34 VIEWER";
-    } else if(val === '4chan') {
-        modoActual = 'chan_catalog';
-        document.getElementById('chan-inputs').style.display = 'block';
-        document.documentElement.style.setProperty('--accent', '#009688');
-        title.innerText = "4CHAN BROWSER";
-        if(typeof setupDropdown === 'function') setupDropdown('catalog');
-    } else if(val === 'reddit') {
-        modoActual = 'reddit';
-        document.getElementById('reddit-inputs').style.display = 'block';
-        document.documentElement.style.setProperty('--accent', '#ff4500');
-        title.innerText = "REDDIT FEED";
-    } else if(val === 'x') {
-        modoActual = 'x';
-        document.getElementById('x-inputs').style.display = 'block';
-        document.documentElement.style.setProperty('--accent', '#ffffff');
-        title.innerText = "X (TWITTER)";
+        feed.classList.add('tiktok-mode'); 
+        
+        // Custom title
+        document.getElementById('app-title').innerText = val.toUpperCase().replace('_', ' ') + " VIEWER";
+        
+        // Color theme adjustment
+        const color = val === 'anime_pictures' ? '#ff77aa' : '#3b82f6';
+        document.documentElement.style.setProperty('--accent', color);
+    } 
+    // --- OTHER MODES (4chan, Reddit, X) ---
+    else {
+        feed.classList.remove('tiktok-mode'); 
+        
+        if(val === '4chan') {
+            modoActual = 'chan_catalog';
+            document.getElementById('chan-inputs').style.display = 'block';
+            document.documentElement.style.setProperty('--accent', '#009688');
+            document.getElementById('app-title').innerText = "4CHAN BROWSER";
+            if(typeof setupDropdown === 'function') setupDropdown('catalog');
+        } else if(val === 'reddit') {
+            modoActual = 'reddit';
+            document.getElementById('reddit-inputs').style.display = 'block';
+            document.documentElement.style.setProperty('--accent', '#ff4500');
+            document.getElementById('app-title').innerText = "REDDIT FEED";
+            feed.classList.add('tiktok-mode'); 
+        } else if(val === 'x') {
+            modoActual = 'x';
+            document.getElementById('x-inputs').style.display = 'block';
+            document.documentElement.style.setProperty('--accent', '#ffffff');
+            document.getElementById('app-title').innerText = "X (TWITTER)";
+        }
     }
+    
+    // Hide unused inputs
+    document.querySelectorAll('.input-group').forEach(el => {
+        if (modoActual === 'booru_generic' && el.id === 'r34-inputs') return; 
+        if (el.id !== (modoActual === 'chan_catalog' ? 'chan-inputs' : modoActual + '-inputs')) el.style.display = 'none';
+    });
 }
 
 function checkRedditInput() {
@@ -211,7 +239,10 @@ function ejecutarBusqueda() {
     
     paginaActual = 0; redditAfter = ''; hayMas = true; cargando = false;
 
-    if(modoActual === 'r34') cargarPaginaR34(0);
+    // MODIFIED: Now uses booru_generic
+    if(modoActual === 'booru_generic' || modoActual === 'r34') {
+        cargarPaginaBooru(0);
+    }
     else if(modoActual === 'chan_catalog') cargarCatalogo4Chan();
     else if(modoActual === 'reddit') cargarPaginaReddit();
     else if(modoActual === 'x') cargarX();
@@ -224,21 +255,78 @@ function sanitizeTag(tag) {
 }
 function buscarR34() { ejecutarBusqueda(); }
 
-async function cargarPaginaR34(pageNum) {
+// --- GENERIC BOORU ENGINE (Hybrid) ---
+function buscarR34() { ejecutarBusqueda(); } 
+
+// IMPORTANT: Update ejecutarBusqueda() to call this function instead of the old one
+// (See step D below)
+
+async function cargarPaginaBooru(pageNum) {
     if (cargando) return; cargando = true;
+    
+    const site = BOORU_SITES[currentBooru];
     const tags = misTags.join(' ') || document.getElementById('input-tags-real').value.trim();
-    const creds = getKeys(); 
-    const url = `https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&limit=10&pid=${pageNum}&tags=${encodeURIComponent(tags)}&user_id=${creds.uid}&api_key=${creds.key}`;
+    let url = '';
+
+    // 1. URL CONSTRUCTION ADAPTER
+    if (site.adapter === 'ap_v3') {
+        // Anime-Pictures uses 'search_tag' and 'page' (0-indexed)
+        url = `${site.url}${site.endpoint}&page=${pageNum}&search_tag=${encodeURIComponent(tags)}`;
+    } else {
+        // Standard Rule34
+        url = `${site.url}${site.endpoint}&limit=10&pid=${pageNum}&tags=${encodeURIComponent(tags)}`;
+        if (site.key_needed) {
+            const creds = getKeys(); 
+            url += `&user_id=${creds.uid}&api_key=${creds.key}`;
+        }
+    }
+
     try {
-        const data = await fetchSmart(url);
+        const rawData = await fetchSmart(url);
+        let postsLimpios = [];
+
+        // 2. DATA TRANSLATION ADAPTER
+        if (site.adapter === 'ap_v3') {
+            // Validation for Anime-Pictures
+            if (!rawData.posts) throw new Error("Invalid API structure");
+            
+            postsLimpios = rawData.posts.map(p => {
+                return {
+                    // Fix relative URLs
+                    file_url: p.file_url ? `https://anime-pictures.net${p.file_url}` : '',
+                    preview_url: p.small_preview ? `https://anime-pictures.net${p.small_preview}` : '',
+                    type: 'img', 
+                    tags: "Tags complex (View on site)" // AP tags are complex objects, skipping for now
+                };
+            });
+        } else {
+            // Standard R34 is already clean
+            postsLimpios = rawData;
+        }
+
         document.getElementById('loading-status').style.display = 'none';
         document.getElementById('centinela-scroll').style.display = 'flex';
-        if(!Array.isArray(data) || data.length===0) { hayMas=false; document.getElementById('centinela-scroll').innerText="Fin."; return; }
-        data.forEach(renderTarjetaR34);
+        
+        if(!postsLimpios.length) { 
+            hayMas=false; 
+            document.getElementById('centinela-scroll').innerText="End of results."; 
+            return; 
+        }
+        
+        postsLimpios.forEach(item => {
+            if(item.file_url) renderTarjetaR34(item);
+        });
+        
         paginaActual = pageNum;
         document.getElementById('centinela-scroll').innerText="...";
-    } catch(e) { document.getElementById('loading-status').innerText = e.message; } finally { cargando=false; }
+        
+    } catch(e) { 
+        document.getElementById('loading-status').innerText = `Error ${currentBooru}: ${e.message}`; 
+    } finally { 
+        cargando=false; 
+    }
 }
+
 function renderTarjetaR34(item) {
     const src = item.file_url; let prev = item.sample_url || item.preview_url || src; const type = detectType(src);
     if(type==='gif' && prev.includes('.gif')) prev = item.preview_url || prev;
@@ -920,8 +1008,12 @@ function toggleTags(el) {
 }
 function generarTagsHtml(t) { return t.split(' ').map(tag=>tag?`<span class="tag-chip" style="font-size:0.7rem;margin:2px" onclick="abrirModal('${tag}')">${tag}</span>`:'').join(''); }
 function restoreCatalogScroll() { requestAnimationFrame(() => { requestAnimationFrame(() => { window.scrollTo(0, scrollCatalogPos); }); }); }
-function cargarSiguientePagina() { document.getElementById('centinela-scroll').innerText="Cargando..."; if(modoActual==='r34')cargarPaginaR34(paginaActual+1); if(modoActual==='reddit')cargarPaginaReddit(); }
-
+function cargarSiguientePagina() { 
+    document.getElementById('centinela-scroll').innerText="Loading..."; 
+    // MODIFIED: Now calls cargarPaginaBooru
+    if(modoActual === 'booru_generic' || modoActual === 'r34') cargarPaginaBooru(paginaActual+1); 
+    if(modoActual === 'reddit') cargarPaginaReddit(); 
+}
 // --- LIGHTBOX AVANZADO (ZOOM, PINCH & PAN) ---
 const lb = document.getElementById('lightbox');
 const lbLayer = document.getElementById('lightbox-transform-layer');
