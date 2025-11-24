@@ -131,34 +131,47 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 
 /* --- Contenedor Principal (El Feed) --- */
 #feed-infinito.tiktok-mode {
-    height: calc(100vh - 65px); /* Altura completa menos header */
+    /* Usamos 'dvh' (Dynamic Viewport Height) si es posible para evitar problemas con la barra del navegador */
+    height: calc(100dvh - 65px); 
+    /* Fallback por si el navegador es viejo */
+    min-height: calc(100vh - 65px);
+    
     overflow-y: scroll;
-    scroll-snap-type: y mandatory; /* Efecto magnético */
-    overscroll-behavior-y: contain; /* Evita rebotes */
+    
+    /* LA CLAVE: 'mandatory' obliga al navegador a moverse, no le deja opción de quedarse quieto */
+    scroll-snap-type: y mandatory; 
+    
+    overscroll-behavior-y: contain;
     padding: 0 !important;
     margin: 0 !important;
     background: #000;
+    
+    /* Ocultar barra de scroll para inmersión total */
+    scrollbar-width: none; /* Firefox */
+}
+#feed-infinito.tiktok-mode::-webkit-scrollbar { 
+    display: none; /* Chrome/Safari */
 }
 
 /* --- La Tarjeta (Cada pantalla) --- */
 #feed-infinito.tiktok-mode .tarjeta {
-    height: 100%;
+    height: 100%; /* Ocupa exactamente el contenedor padre */
     width: 100%;
     margin: 0;
-    border-radius: 0;
     border: none;
-    /* Separador sutil entre posts en lugar de bordes gruesos */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
     
-    scroll-snap-align: start;
-    scroll-snap-stop: always; /* FRENADO FUERTE (evita saltos) */
+    /* CAMBIO IMPORTANTE: Alineación al CENTRO */
+    /* Esto evita que se corte si la altura no es pixel-perfect */
+    scroll-snap-align: center; 
+    scroll-snap-stop: always; /* Frenado seco */
     
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     background: #000;
-    overflow: hidden; /* Importante para contener el telón */
+    overflow: hidden;
 }
 
 /* --- Media Wrapper (Centrado de imagen/video) --- */
