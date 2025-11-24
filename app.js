@@ -284,6 +284,48 @@ function processRedditPost(p) {
 }
 
 // --- 4CHAN (FULL SYSTEM) ---
+// --- AUTOCOMPLETADO DINÁMICO (API 4CHAN) ---
+
+async function initChanAutocomplete() {
+    const dl = document.getElementById('lista-tablones');
+    if (!dl) return;
+
+    // 1. ESTRATEGIA DE CACHÉ: Si ya tenemos la lista guardada, la usamos primero
+    const cached = localStorage.getItem('sys_chan_boards');
+    if (cached) {
+        poblarDatalist(JSON.parse(cached));
+    }
+
+    // 2. ACTUALIZACIÓN SILENCIOSA: Buscamos la lista fresca en 4chan
+    try {
+        const data = await fetchSmart('https://a.4cdn.org/boards.json');
+        
+        if (data && data.boards) {
+            const cleanList = data.boards.map(b => ({
+                c: b.board,
+                n: b.title
+            }));
+
+            localStorage.setItem('sys_chan_boards', JSON.stringify(cleanList));
+            poblarDatalist(cleanList);
+            console.log(`Tablones actualizados: ${cleanList.length}`);
+        }
+    } catch (e) {
+        console.warn("No se pudo actualizar tablones (usando caché):", e);
+    }
+}
+
+function poblarDatalist(list) {
+    const dl = document.getElementById('lista-tablones');
+    dl.innerHTML = ''; 
+    
+    list.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = `/${b.c}/ - ${b.n}`; 
+        dl.appendChild(opt);
+    });
+}
+
 // 1. FUNCIÓN UI: Mostrar/Ocultar input manual (Ponla junto a checkRedditInput)
 function checkChanInput() {
     const sel = document.getElementById('board-selector').value;
@@ -953,6 +995,10 @@ function accionTag(mode) {
 // INIT - RECUPERACIÓN DE SESIÓN
 window.onload = function() {
     initDebugSystem();
+    
+    // --- NUEVO: INICIAR AUTOCOMPLETADO 4CHAN ---
+    initChanAutocomplete(); 
+    // -------------------------------------------
     
     // Limpieza
     document.getElementById('feed-infinito').innerHTML = '';
