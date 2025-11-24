@@ -280,35 +280,54 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
     height: calc(100% - 60px);
     
     display: flex;
-    flex-direction: column; /* AQUÍ ESTÁ EL CAMBIO: Apilar verticalmente */
+    flex-direction: column; 
     justify-content: flex-start;
-    align-items: flex-start; /* Alineados a la izquierda */
-    gap: 8px; /* Espacio entre cada renglón */
+    align-items: stretch; /* ESTO ES IMPORTANTE: Estira los hijos al ancho total */
+    gap: 0; /* Sin huecos, usamos el padding del chip */
     
     overflow-y: auto;
-    padding: 0 20px 80px 20px; /* Márgenes laterales para que no toque el borde */
+    /* Reduje el padding lateral a 15px para ganar espacio */
+    padding: 0 15px 80px 15px; 
     box-sizing: border-box;
 }
 
-/* Ajuste de los chips de tags para que se vean mejor en el overlay */
+/* Ajuste de los chips para que parezcan elementos de lista PERFECTOS */
+
 #feed-infinito.tiktok-mode .tags-drawer .tag-chip {
-    background: rgba(255,255,255,0.08);
-    border-bottom: 1px solid rgba(255,255,255,0.1); /* Línea divisoria sutil */
-    border-top: none; border-left: none; border-right: none;
-    border-radius: 0; /* Quitamos bordes redondos para look de lista */
+    /* RESETEO TOTAL DEL FLEXBOX ANTERIOR */
+    display: block !important; /* Importante: Mata el 'display: flex' original que centraba todo */
     
-    color: #ddd;
-    font-size: 1rem; /* Texto más grande y legible */
-    padding: 12px 5px; /* Más espacio para el dedo */
+    background: transparent; /* Fondo limpio */
+    border-bottom: 1px solid rgba(255,255,255,0.15); /* Línea divisoria */
+    border-top: none; 
+    border-left: none; 
+    border-right: none;
+    border-radius: 0; 
     
-    width: 100%; /* Ocupa todo el ancho disponible */
-    text-align: left;
+    color: #eee;
+    font-size: 1rem; 
+    font-weight: normal; /* Quitamos negrita excesiva */
+    
+    /* ESPACIADO Y ALINEACIÓN */
+    padding: 15px 0; /* Arriba/Abajo 15px, Izquierda/Derecha 0 (usamos el padding del contenedor) */
+    margin: 0;
+    
+    width: 100%; 
+    text-align: left; /* Alineación forzada a la izquierda */
+    
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Puntos suspensivos si es larguísimo */
+    text-overflow: ellipsis;
 }
 
-/* Pequeño efecto visual al tocar */
+/* Quitamos la "x" decorativa que tenían los chips originales, en lista se ve mal */
+#feed-infinito.tiktok-mode .tags-drawer .tag-chip::after {
+    content: none !important;
+}
+
+/* Efecto al tocar */
 #feed-infinito.tiktok-mode .tags-drawer .tag-chip:active {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    padding-left: 10px; /* Pequeño desplazamiento visual al tocar */
+    transition: padding 0.1s;
 }
