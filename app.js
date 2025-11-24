@@ -284,14 +284,44 @@ function processRedditPost(p) {
 }
 
 // --- 4CHAN (FULL SYSTEM) ---
+// 1. FUNCIÓN UI: Mostrar/Ocultar input manual (Ponla junto a checkRedditInput)
+function checkChanInput() {
+    const sel = document.getElementById('board-selector').value;
+    const input = document.getElementById('chan-custom');
+    if (input) {
+        input.style.display = (sel === 'custom') ? 'block' : 'none';
+        if (sel === 'custom') input.focus();
+    }
+}
 
+// 2. FUNCIÓN DE CARGA ACTUALIZADA
 async function cargarCatalogo4Chan() {
     modoActual = 'chan_catalog';
-    boardActual = document.getElementById('board-selector').value;
+    
+    // LÓGICA DE SELECCIÓN DE TABLÓN
+    let selectedBoard = document.getElementById('board-selector').value;
+    
+    // Si es personalizado, leemos del input
+    if (selectedBoard === 'custom') {
+        const customVal = document.getElementById('chan-custom').value.trim();
+        // Limpiamos por si el usuario pone "/v/" en vez de "v"
+        selectedBoard = customVal.replace(/\//g, '').toLowerCase();
+    }
+
+    if (!selectedBoard) {
+        alert("Escribe un nombre de tablón.");
+        return;
+    }
+
+    boardActual = selectedBoard; // Guardamos en variable global
     
     ocultarPanel();
     document.getElementById('nav-chan').style.display = 'none'; 
     document.getElementById('feed-infinito').innerHTML = '';
+    
+    // Activamos modo TikTok/Grid según corresponda (en catálogo quitamos tiktok)
+    document.getElementById('feed-infinito').classList.remove('tiktok-mode');
+
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('loading-status').innerText = `Cargando /${boardActual}/...`;
     document.getElementById('centinela-scroll').style.display = 'none'; 
@@ -304,9 +334,13 @@ async function cargarCatalogo4Chan() {
         document.getElementById('loading-status').style.display = 'none';
         catalogCache = [];
         pages.forEach(p => { if(p.threads) catalogCache.push(...p.threads); });
+        
+        // Si el JSON vino vacío o sin hilos
+        if (catalogCache.length === 0) throw new Error("Tablón vacío o inválido");
+        
         renderCatalogoOrdenado(); 
     } catch (e) { 
-        document.getElementById('loading-status').innerText = "Error 4Chan: " + e.message; 
+        document.getElementById('loading-status').innerText = "Error 4Chan (¿Tablón no existe?): " + e.message; 
     }
 }
 

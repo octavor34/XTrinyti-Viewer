@@ -42,21 +42,29 @@
 
         <div id="chan-inputs" class="input-group">
             <label class="lbl-title">Tablón:</label>
-            <select id="board-selector">
+            <select id="board-selector" onchange="checkChanInput()">
                 <option value="gif">/gif/ - Adult GIF</option>
                 <option value="d">/d/ - Hentai Alternative</option>
                 <option value="h">/h/ - Hentai</option>
                 <option value="aco">/aco/ - Adult Cartoons</option>
-                <option value="hc">/hc/ - Hardcore</option>
-                <option value="b">/b/ - Random</option>
                 <option value="s">/s/ - Sexy Beautiful Women</option>
+                <option value="hc">/hc/ - Hardcore</option>
+                <option value="e">/e/ - Ecchi</option>
+                <option value="u">/u/ - Yuri</option>
+                <option value="b">/b/ - Random (Warning)</option>
+                <option value="wg">/wg/ - Wallpapers</option>
+                <option value="a">/a/ - Anime & Manga</option>
+                <option value="v">/v/ - Video Games</option>
+                <option value="g">/g/ - Technology</option>
+                <option value="custom">...Escribir Manualmente</option>
             </select>
+            
+            <input type="text" id="chan-custom" placeholder="Ej: pol, fit, his..." style="display:none; margin-top: 5px;">
+
             <label class="lbl-title">Orden:</label>
-            <select id="chan-sort" onchange="renderCatalogoOrdenado()">
-                <option value="bump">🔥 Activos</option>
-                <option value="img">🖼️ Más Imágenes</option>
-                <option value="new">✨ Nuevos</option>
-            </select>
+            <select id="chan-sort">
+                </select>
+            
             <button id="btn-chan-main" class="btn-action" style="background:#004d40">CARGAR TABLÓN</button>
         </div>
 
