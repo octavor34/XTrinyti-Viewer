@@ -737,50 +737,80 @@ function stepZoom() {
     setTimeout(() => lbLayer.style.transition = 'none', 200);
 }
 
-// --- AUTOCOMPLETADO GENÉRICO ---
+// ==========================================
+// AUTOCOMPLETADO (RULE34 - MODO DIRECTO)
+// ==========================================
+
 const inp = document.getElementById('input-tags-real');
 const rBox = document.getElementById('sugerencias-box');
 
 inp.addEventListener('input', (e) => {
     const val = inp.value;
-    if (val.trim().length < 2) { rBox.style.display = 'none'; return; }
-    const site = BOORU_SITES[currentBooru];
-    if (!site || !site.auto) { rBox.style.display = 'none'; return; }
+    
+    // 1. Si es muy corto o NO estamos en modo Rule34, no hacemos nada
+    // (Esto evita errores si estás en Reddit o 4chan)
+    if (val.trim().length < 2 || (modoActual !== 'r34' && modoActual !== 'booru_generic')) { 
+        rBox.style.display = 'none'; 
+        return; 
+    }
 
     clearTimeout(timerDebounce);
     timerDebounce = setTimeout(async () => {
         try {
-            let query = val.trim();
-            if (site.auto.separator === '_') query = query.replace(/ /g, '_');
-            const d = await fetchSmart(`${site.auto.url}&${site.auto.param}=${encodeURIComponent(query)}`);
-            mostrarSugerenciasGenerico(d, site.auto.type, site.auto.separator);
-        } catch (e) {}
+            // Rule34 usa guiones bajos para buscar
+            const query = val.trim().replace(/ /g, '_');
+            
+            // Llamada DIRECTA a la API de Rule34
+            const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
+            
+            // Usamos fetchSmart para saltarnos posibles bloqueos
+            const data = await fetchSmart(url);
+            
+            mostrarSugerenciasR34(data);
+        } catch (e) {
+            console.warn("Error autocompletado:", e);
+        }
     }, 300);
 });
 
-function mostrarSugerenciasGenerico(data, type, separator) {
+function mostrarSugerenciasR34(data) {
     rBox.innerHTML = '';
-    let list = [];
-    if (type === 'ap_v3' && data && data.tags) { list = data.tags.map(t => ({ v: t.tag, c: '' })); }
-    else if (Array.isArray(data)) {
-        list = data.map(i => {
-            let c = ''; if (i.label && i.label.includes('(')) c = i.label.split('(')[1].replace(')', '');
-            return { v: i.value, c: c };
-        });
+    
+    // Validación: Rule34 devuelve un Array puro: [{label:..., value:...}]
+    if (!data || !Array.isArray(data) || data.length === 0) { 
+        rBox.style.display = 'none'; 
+        return; 
     }
-    if (!list.length) { rBox.style.display = 'none'; return; }
-    list.slice(0, 8).forEach(i => {
-        const d = document.createElement('div'); d.className = 'sugerencia-item';
-        d.innerHTML = `<span>${i.v}</span><span style="color:#666;font-size:0.8rem">${i.c}</span>`;
+
+    // Mostramos máximo 8 sugerencias
+    data.slice(0, 8).forEach(item => {
+        const d = document.createElement('div');
+        d.className = 'sugerencia-item';
+        
+        // Formato: "tag (cantidad)"
+        // Extraemos la cantidad para que se vea bonito en gris
+        let count = "";
+        if (item.label && item.label.includes('(')) {
+            count = item.label.split('(')[1].replace(')', '');
+        }
+        
+        d.innerHTML = `<span>${item.value}</span><span style="color:#666; font-size:0.8rem">${count}</span>`;
+        
         d.onclick = () => {
-            let t = i.v; if (separator === '_') t = i.v.replace(/ /g, '_');
-            agregarTag(t); inp.value = ''; rBox.style.display = 'none'; inp.focus();
+            // Al hacer click, añadimos el tag a la lista
+            agregarTag(item.value);
+            
+            // Limpiamos input y cerramos lista
+            inp.value = '';
+            rBox.style.display = 'none';
+            inp.focus();
         };
+        
         rBox.appendChild(d);
     });
+    
     rBox.style.display = 'block';
 }
-
 inp.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); const t = inp.value.trim(); if(t) { agregarTag(t.replace(/ /g, '_')); inp.value = ''; rBox.style.display = 'none'; } }
     if (e.key === 'Backspace' && !inp.value) { misTags.pop(); renderChips(); }
