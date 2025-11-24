@@ -38,3 +38,34 @@ function getKeys() {
         return { uid: '', key: '' };
     }
 }
+
+// 3. CATÁLOGO DE SITIOS (BOORUS)
+const BOORU_SITES = {
+    'r34': {
+        url: 'https://api.rule34.xxx',
+        endpoint: '/index.php?page=dapi&s=post&q=index&json=1',
+        key_needed: true,
+        adapter: 'standard',
+        // Configuración Autocompletado R34
+        auto: {
+            url: 'https://api.rule34.xxx/autocomplete.php',
+            param: 'q',
+            type: 'r34_legacy',
+            separator: '_'
+        }
+    },
+    'anime_pictures': {
+        url: 'https://anime-pictures.net',
+        endpoint: '/api/v3/posts?lang=en',
+        key_needed: false,
+        adapter: 'ap_v3',
+        // Configuración Autocompletado AnimePictures
+        auto: {
+            url: 'https://anime-pictures.net/api/v3/tags?lang=en',
+            param: 'tag',
+            type: 'ap_v3',
+            separator: ' '
+        }
+    }
+    // Aquí añadirías Gelbooru, Safebooru, etc. en el futuro
+};
