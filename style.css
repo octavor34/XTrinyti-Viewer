@@ -250,18 +250,9 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 }
 
 /* Cuando se abre */
-#feed-infinito.tiktok-mode .tags-drawer .tag-chip {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: #eee;
-    font-size: 0.85rem;
-    padding: 8px 14px;
-    border-radius: 20px;
-    max-width: 90%; /* Evita que un tag gigante rompa la pantalla */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: center;
+#feed-infinito.tiktok-mode .tags-drawer.open {
+    display: flex;
+    animation: slideUpIn 0.25s ease-out; /* Animación de entrada */
 }
 @keyframes slideUpIn {
     from { transform: translateY(100%); opacity: 0; }
@@ -271,42 +262,50 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 /* El botón X para cerrar */
 .drawer-close-x {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    z-index: 160; /* Aseguramos que esté encima de todo */
-    background: rgba(255, 255, 255, 0.15); /* Un poco más visible */
-    backdrop-filter: blur(4px);
-    width: 44px; 
-    height: 44px;
+    top: 15px;
+    right: 15px;
+    z-index: 160;
+    background: rgba(0, 0, 0, 0.5); /* Fondo más oscuro para contraste */
+    border: 1px solid rgba(255,255,255,0.2);
+    width: 44px; height: 44px;
     border-radius: 50%;
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
+    display: flex; justify-content: center; align-items: center;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 /* Contenedor de los chips dentro del telón */
 .drawer-tags-container {
-    margin-top: 60px; /* Espacio generoso para la X de cerrar */
+    margin-top: 60px; /* Espacio para la X */
     width: 100%;
-    height: calc(100% - 80px); /* Ocupa el resto de la altura disponible */
+    height: calc(100% - 60px); /* Resto de la pantalla */
     
     display: flex;
-    flex-wrap: wrap; /* Permite que los tags bajen a la siguiente línea */
-    justify-content: center; /* CENTRADO HORIZONTAL */
-    align-content: flex-start; /* Alinea los bloques al principio (arriba) */
-    gap: 10px; /* Espacio entre tags */
+    flex-wrap: wrap; /* Que bajen de línea si no caben */
+    justify-content: flex-start; /* ALINEAR A LA IZQUIERDA (Fix del corte) */
+    align-content: flex-start; /* Pegados arriba */
+    gap: 10px; /* Espacio entre ellos */
     
-    overflow-y: auto; /* Scroll vertical si son muchos */
-    padding-bottom: 50px; /* Espacio final para que el último tag no toque el borde */
-    box-sizing: border-box; /* Asegura que el padding no rompa el ancho */
+    overflow-y: auto; /* Scroll vertical */
+    
+    /* MÁRGENES DE SEGURIDAD IMPORTANTES */
+    /* 0 arriba, 25px derecha, 80px abajo (para scroll), 25px izquierda */
+    padding: 0 25px 80px 25px; 
+    box-sizing: border-box; /* Asegura que el padding no ensanche el contenedor */
 }
 
 /* Ajuste de los chips de tags para que se vean mejor en el overlay */
 #feed-infinito.tiktok-mode .tags-drawer .tag-chip {
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.2);
-    font-size: 0.8rem;
+    color: #eee;
+    font-size: 0.9rem; /* Un pelín más grandes para leer mejor */
     padding: 8px 12px;
+    border-radius: 8px; /* Menos redondos, parecen más lista */
+    
+    max-width: 100%; /* Que no se salgan nunca */
+    white-space: normal; /* Permite que el texto baje de línea DENTRO del tag si es gigante */
+    word-break: break-word; /* Rompe palabras largas si es necesario */
+    text-align: left; /* Texto a la izquierda */
+    
+    flex-shrink: 0; /* Evita que se aplasten */
 }
