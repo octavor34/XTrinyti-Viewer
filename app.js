@@ -298,13 +298,13 @@ function checkChanInput() {
 async function cargarCatalogo4Chan() {
     modoActual = 'chan_catalog';
     
-    // LÓGICA DE SELECCIÓN DE TABLÓN
+    // 1. OBTENER TABLÓN
     let selectedBoard = document.getElementById('board-selector').value;
     
-    // Si es personalizado, leemos del input
+    // Si es custom, leemos del input y limpiamos barras por si el usuario las puso
     if (selectedBoard === 'custom') {
         const customVal = document.getElementById('chan-custom').value.trim();
-        // Limpiamos por si el usuario pone "/v/" en vez de "v"
+        // Esto permite que el usuario escriba "v" o "/v/" y funcione igual
         selectedBoard = customVal.replace(/\//g, '').toLowerCase();
     }
 
@@ -313,14 +313,18 @@ async function cargarCatalogo4Chan() {
         return;
     }
 
-    boardActual = selectedBoard; // Guardamos en variable global
+    boardActual = selectedBoard; 
     
+    // 2. ACTUALIZAR INTERFAZ
     ocultarPanel();
     document.getElementById('nav-chan').style.display = 'none'; 
     document.getElementById('feed-infinito').innerHTML = '';
-    
-    // Activamos modo TikTok/Grid según corresponda (en catálogo quitamos tiktok)
     document.getElementById('feed-infinito').classList.remove('tiktok-mode');
+
+    // --- FIX VISUAL: ACTUALIZAR EL TÍTULO DE LA APP ---
+    // Ahora sabrás siempre en qué tablón estás mirando
+    document.getElementById('app-title').innerText = `4CHAN /${boardActual}/`;
+    // --------------------------------------------------
 
     document.getElementById('loading-status').style.display = 'block';
     document.getElementById('loading-status').innerText = `Cargando /${boardActual}/...`;
@@ -328,6 +332,7 @@ async function cargarCatalogo4Chan() {
     
     setupDropdown('catalog');
 
+    // 3. PETICIÓN DE RED
     const url = `https://a.4cdn.org/${boardActual}/catalog.json`;
     try {
         const pages = await fetchSmart(url);
@@ -335,12 +340,12 @@ async function cargarCatalogo4Chan() {
         catalogCache = [];
         pages.forEach(p => { if(p.threads) catalogCache.push(...p.threads); });
         
-        // Si el JSON vino vacío o sin hilos
-        if (catalogCache.length === 0) throw new Error("Tablón vacío o inválido");
+        if (catalogCache.length === 0) throw new Error("Vacío");
         
         renderCatalogoOrdenado(); 
     } catch (e) { 
-        document.getElementById('loading-status').innerText = "Error 4Chan (¿Tablón no existe?): " + e.message; 
+        document.getElementById('loading-status').innerText = "Error 4Chan: " + e.message; 
+        document.getElementById('app-title').innerText = "4CHAN ERROR"; // Feedback visual
     }
 }
 
