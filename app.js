@@ -808,24 +808,47 @@ function accionTag(mode) {
 }
 
 // --- INIT ---
+// --- INIT (FINAL VERSIÓN) ---
 window.onload = function() {
-    initSecurityCheck(); initDebugSystem(); initChanAutocomplete();
+    initSecurityCheck(); 
+    initDebugSystem(); 
+    initChanAutocomplete();
+
+    // Limpieza inicial
     document.getElementById('feed-infinito').innerHTML = '';
     document.getElementById('loading-status').style.display = 'none';
     
+    // Recuperar sesión anterior
     const lastMode = localStorage.getItem('sys_last_mode') || 'r34';
     const sel = document.getElementById('source-selector');
     if (sel) sel.value = lastMode;
-    cambiarModo();
+    
+    cambiarModo(); // Configura la UI
 
+    // --- AUTO-ARRANQUE INTELIGENTE ---
+    
+    // 1. Si es 4chan
     if (lastMode === '4chan') {
         const btn = document.getElementById('btn-chan-main');
         if (btn) btn.onclick = cargarCatalogo4Chan;
         setTimeout(cargarCatalogo4Chan, 100);
     }
+    // 2. Si es un Booru (R34, AnimePictures, etc.)
+    else if (BOORU_SITES[lastMode]) {
+        // Cargamos página 0 automáticamente para no ver negro
+        setTimeout(() => cargarPaginaBooru(0), 100);
+    }
+    // 3. Si es Reddit
+    else if (lastMode === 'reddit') {
+        setTimeout(cargarPaginaReddit, 100);
+    }
+    // ----------------------------------
+
+    // Focus en seguridad si está activo
     if(document.getElementById('security-wall').style.display !== 'none') {
         setTimeout(() => document.getElementById('sys-access-pass').focus(), 100);
     }
+    
     try { if (!SYS_PASS) console.error("Drivers!"); } catch (e) {}
 };
 
