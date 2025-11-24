@@ -23,9 +23,58 @@ input[type="text"] { width: 100%; padding: 12px; background: #000; border: 1px s
 
 button.btn-action { width: 100%; padding: 16px; background: var(--accent); color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 1rem; transition: background 0.3s; }
 
-#nav-chan { display: none; padding: 10px 20px; background: #222; border-bottom: 1px solid #333; position: sticky; top: 65px; z-index: 90; }
-.btn-back { background: #333; color: #fff; border: 1px solid #555; padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; cursor: pointer; display: inline-block;}
+/* --- BARRA DE NAVEGACIÓN FLOTANTE & DISCRETA --- */
 
+#nav-chan {
+    display: none; /* Se activa con JS */
+    
+    /* Hacemos la barra contenedora invisible y flotante */
+    background: transparent !important;
+    border: none !important;
+    
+    position: absolute; /* Flota SOBRE el feed, no empuja contenido */
+    top: 60px; /* Justo debajo del header principal */
+    left: 0;
+    width: 100%;
+    padding: 15px; /* Margen para respirar */
+    box-sizing: border-box;
+    
+    z-index: 100; /* Por encima de las tarjetas */
+    pointer-events: none; /* IMPORTANTE: Permite tocar 'a través' del espacio vacío */
+}
+
+/* El botón fantasma */
+.btn-back {
+    /* Estilo Vidrio (Glassmorphism) */
+    background: rgba(0, 0, 0, 0.25); /* Muy transparente */
+    backdrop-filter: blur(4px); /* Efecto borroso */
+    -webkit-backdrop-filter: blur(4px); /* Soporte Safari */
+    
+    color: rgba(255, 255, 255, 0.7); /* Texto blanco suave (no chillón) */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Borde casi invisible */
+    
+    padding: 8px 16px;
+    border-radius: 30px; /* Forma de píldora */
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    
+    cursor: pointer;
+    display: inline-block;
+    
+    pointer-events: auto; /* Reactivamos el click SOLO en el botón */
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Efecto al tocar/pasar el mouse */
+.btn-back:hover, .btn-back:active {
+    background: rgba(255, 255, 255, 0.1); /* Se ilumina un poco */
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
 #feed-infinito { max-width: 600px; margin: 0 auto; padding-top: 20px; padding-left: 10px; padding-right: 10px; min-height: 300px;}
 .tarjeta { background: var(--card); margin-bottom: 25px; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); content-visibility: auto; contain-intrinsic-size: 400px; }
 
