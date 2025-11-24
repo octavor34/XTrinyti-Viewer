@@ -275,37 +275,40 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 
 /* Contenedor de los chips dentro del telón */
 .drawer-tags-container {
-    margin-top: 60px; /* Espacio para la X */
+    margin-top: 60px;
     width: 100%;
-    height: calc(100% - 60px); /* Resto de la pantalla */
+    height: calc(100% - 60px);
     
     display: flex;
-    flex-wrap: wrap; /* Que bajen de línea si no caben */
-    justify-content: flex-start; /* ALINEAR A LA IZQUIERDA (Fix del corte) */
-    align-content: flex-start; /* Pegados arriba */
-    gap: 10px; /* Espacio entre ellos */
+    flex-direction: column; /* AQUÍ ESTÁ EL CAMBIO: Apilar verticalmente */
+    justify-content: flex-start;
+    align-items: flex-start; /* Alineados a la izquierda */
+    gap: 8px; /* Espacio entre cada renglón */
     
-    overflow-y: auto; /* Scroll vertical */
-    
-    /* MÁRGENES DE SEGURIDAD IMPORTANTES */
-    /* 0 arriba, 25px derecha, 80px abajo (para scroll), 25px izquierda */
-    padding: 0 25px 80px 25px; 
-    box-sizing: border-box; /* Asegura que el padding no ensanche el contenedor */
+    overflow-y: auto;
+    padding: 0 20px 80px 20px; /* Márgenes laterales para que no toque el borde */
+    box-sizing: border-box;
 }
 
 /* Ajuste de los chips de tags para que se vean mejor en el overlay */
 #feed-infinito.tiktok-mode .tags-drawer .tag-chip {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #eee;
-    font-size: 0.9rem; /* Un pelín más grandes para leer mejor */
-    padding: 8px 12px;
-    border-radius: 8px; /* Menos redondos, parecen más lista */
+    background: rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255,255,255,0.1); /* Línea divisoria sutil */
+    border-top: none; border-left: none; border-right: none;
+    border-radius: 0; /* Quitamos bordes redondos para look de lista */
     
-    max-width: 100%; /* Que no se salgan nunca */
-    white-space: normal; /* Permite que el texto baje de línea DENTRO del tag si es gigante */
-    word-break: break-word; /* Rompe palabras largas si es necesario */
-    text-align: left; /* Texto a la izquierda */
+    color: #ddd;
+    font-size: 1rem; /* Texto más grande y legible */
+    padding: 12px 5px; /* Más espacio para el dedo */
     
-    flex-shrink: 0; /* Evita que se aplasten */
+    width: 100%; /* Ocupa todo el ancho disponible */
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Puntos suspensivos si es larguísimo */
+}
+
+/* Pequeño efecto visual al tocar */
+#feed-infinito.tiktok-mode .tags-drawer .tag-chip:active {
+    background: rgba(255,255,255,0.15);
 }
