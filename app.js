@@ -1036,91 +1036,94 @@ const scrollObserver = new IntersectionObserver((es) => {
 }, { rootMargin: '600px' });
 scrollObserver.observe(document.getElementById('centinela-scroll'));
 
-// R34 Auto-Suggest
+// ==========================================
+// AUTOCOMPLETADO GENÉRICO (R34 & BOORUS)
+// ==========================================
+
 const inp = document.getElementById('input-tags-real');
 const rBox = document.getElementById('sugerencias-box');
 
-// Listener inteligente de Autocompletado
 inp.addEventListener('input', (e) => {
     const val = inp.value;
-    if (val.trim().length < 2) { rBox.style.display = 'none'; return; }
+    if (val.trim().length < 2) { 
+        rBox.style.display = 'none'; 
+        return; 
+    }
 
-    // 1. CONFIGURACIÓN DINÁMICA DE API
-    let autoUrl = '';
-    let parserType = 'standard'; // 'standard' (R34) o 'ap' (AnimePictures)
-
-    if (currentBooru === 'r34') {
-        const query = val.trim().replace(/ /g, '_');
-        autoUrl = `https://api.rule34.xxx/autocomplete.php?q=${query}`;
-    } 
-    else if (currentBooru === 'anime_pictures') {
-        // API específica de Anime-Pictures
-        parserType = 'ap';
-        const query = encodeURIComponent(val.trim());
-        autoUrl = `https://anime-pictures.net/api/v3/tags?tag=${query}&lang=en`;
-    } 
-    else {
-        // Si el sitio no tiene soporte de autocompletado configurado, salimos
-        rBox.style.display = 'none';
-        return;
+    // 1. OBTENER CONFIGURACIÓN DEL SITIO ACTUAL
+    const site = BOORU_SITES[currentBooru];
+    
+    // Si el sitio no tiene configuración 'auto', no hacemos nada
+    if (!site || !site.auto) { 
+        rBox.style.display = 'none'; 
+        return; 
     }
 
     clearTimeout(timerDebounce);
     timerDebounce = setTimeout(async () => {
         try {
-            // fetchSmart se encarga de los proxies si hay CORS
-            const d = await fetchSmart(autoUrl);
-            mostrarSugerenciasR34(d, parserType);
+            // 2. PREPARAR QUERY (Espacios vs Guiones)
+            let query = val.trim();
+            if (site.auto.separator === '_') {
+                query = query.replace(/ /g, '_');
+            }
+            
+            // 3. CONSTRUIR URL DINÁMICA
+            const finalUrl = `${site.auto.url}&${site.auto.param}=${encodeURIComponent(query)}`;
+            
+            // 4. PETICIÓN
+            const d = await fetchSmart(finalUrl);
+            
+            // 5. MOSTRAR RESULTADOS
+            mostrarSugerenciasGenerico(d, site.auto.type, site.auto.separator);
+            
         } catch (e) {
-            console.warn("Fallo autocompletado:", e);
+            // Silencioso si falla
         }
     }, 300);
 });
 
-function mostrarSugerenciasR34(data, type = 'standard') {
+function mostrarSugerenciasGenerico(data, type, separator) {
     rBox.innerHTML = '';
     let listaLimpia = [];
 
-    // 1. ADAPTADOR DE DATOS
-    if (type === 'ap') {
-        // Estructura Anime-Pictures: { success: true, tags: [ { tag: "blue eyes", ... } ] }
+    // --- ADAPTADORES DE RESPUESTA JSON ---
+    
+    if (type === 'ap_v3') {
+        // Anime-Pictures
         if (data && data.tags) {
-            listaLimpia = data.tags.map(t => ({ 
-                value: t.tag, 
-                label: t.tag // AP no suele mandar el count aquí, usamos el nombre
-            }));
+            listaLimpia = data.tags.map(t => ({ v: t.tag, c: '' }));
         }
-    } else {
-        // Estructura Rule34: [ { label: "tag (123)", value: "tag" }, ... ]
+    } 
+    else {
+        // Rule34 / Legacy
         if (Array.isArray(data)) {
-            listaLimpia = data;
+            listaLimpia = data.map(item => {
+                let count = '';
+                if (item.label && item.label.includes('(')) {
+                    count = item.label.split('(')[1].replace(')', '');
+                }
+                return { v: item.value, c: count };
+            });
         }
     }
 
-    // Si no hay resultados
-    if (!listaLimpia || !listaLimpia.length) { 
+    if (!listaLimpia.length) { 
         rBox.style.display = 'none'; 
         return; 
     }
 
-    // 2. RENDERIZADO
+    // --- RENDERIZADO ---
     listaLimpia.slice(0, 8).forEach(i => {
         const d = document.createElement('div');
         d.className = 'sugerencia-item';
         
-        const v = i.value;
-        // Procesamiento del contador (solo si existe en el label y es R34)
-        let count = '';
-        if (i.label && i.label.includes('(')) {
-            count = i.label.split('(')[1].replace(')', '');
-        }
-        
-        d.innerHTML = `<span>${v}</span><span style="color:#666; font-size:0.8rem">${count}</span>`;
+        d.innerHTML = `<span>${i.v}</span><span style="color:#666; font-size:0.8rem">${i.c}</span>`;
         
         d.onclick = () => {
-            // Si es R34 reemplazamos espacios por guiones, si es AP lo dejamos natural
-            let tagFinal = v;
-            if (currentBooru === 'r34') tagFinal = v.replace(/ /g, '_');
+            // Formatear tag al elegir (espacio o guion)
+            let tagFinal = i.v;
+            if (separator === '_') tagFinal = i.v.replace(/ /g, '_');
             
             agregarTag(tagFinal);
             inp.value = '';
