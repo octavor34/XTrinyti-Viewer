@@ -266,18 +266,45 @@ async function cargarPaginaReddit() {
     } catch(e) { document.getElementById('loading-status').innerText = `Error: ${e.message}`; } finally { cargando=false; }
 }
 function processRedditPost(p) {
-    if(p.is_self) return;
+    if(p.is_self) return; // Ignorar post de solo texto
+    
+    // Filtro básico de miniaturas rotas
     if (!p.thumbnail || p.thumbnail === 'self' || p.thumbnail === 'default' || p.thumbnail === 'nsfw') {
         if(!p.preview?.images) return; 
     }    
-    let src = p.url; let prev = p.thumbnail; let type = detectType(src);
+    
+    let src = p.url; 
+    let prev = p.thumbnail; 
+    let type = detectType(src);
+
+    // --- FIX IMÁGENES PEQUEÑAS ---
+    // Reddit da una miniatura en 'thumbnail' (muy pequeña).
+    // Intentamos buscar la imagen 'preview' de alta resolución (source) 
+    // o usamos la URL principal directamente.
+    if (p.preview && p.preview.images && p.preview.images[0]) {
+        // Usamos la versión 'source' que es HD
+        prev = p.preview.images[0].source.url.replace(/&amp;/g, '&');
+    } else if (type === 'img') {
+        // Si no hay preview pero es imagen, usamos la original como previa
+        prev = src;
+    }
+    // -----------------------------
+
+    // Lógica de Video (Reddit/Redgifs)
     if (p.domain.includes('redgifs') || p.domain.includes('v.redd.it')) {
         const vid = p.preview?.reddit_video_preview?.fallback_url || p.secure_media?.reddit_video?.fallback_url;
         if (!vid) return;
-        src = vid; type = 'vid';
+        src = vid; 
+        type = 'vid';
+        // Para videos, intentamos mantener una preview estática HD si existe
+        if (p.preview?.images?.[0]?.source?.url) {
+             prev = p.preview.images[0].source.url.replace(/&amp;/g, '&');
+        }
     }
-    if((prev==='default'||prev==='nsfw') && p.preview?.images) prev = p.preview.images[0].source.url.replace(/&amp;/g,'&');
+    
+    // Validación final de imagen
     if(type==='img' && !src.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return;
+    
     renderCard(src, prev, type, p.title, `u/${p.author}`, 'reddit');
 }
 
