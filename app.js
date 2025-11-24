@@ -87,29 +87,27 @@ function cerrarAdminPanel() {
 // --- CAMBIO DE MODOS ---
 function cambiarModo() {
     const val = document.getElementById('source-selector').value;
-    
-    // 1. MEMORIA
     localStorage.setItem('sys_last_mode', val);
 
-    // 2. LIMPIEZA Y PREPARACIÓN
+    // Limpieza
     const feed = document.getElementById('feed-infinito');
     feed.innerHTML = '';
     document.getElementById('centinela-scroll').style.display = 'none';
     document.getElementById('loading-status').style.display = 'none';
 
-    // --- AQUÍ ESTÁ LA MAGIA TIKTOK ---
-    // Solo activamos el modo swipe en Rule34 (puedes añadir más si quieres)
-    if (val === 'r34') {
+    // --- ACTIVACIÓN DEL MODO TIKTOK (AÑADIDO REDDIT) ---
+    // Ahora Reddit también usa el scroll magnético
+    if (val === 'r34' || val === 'reddit') {
         feed.classList.add('tiktok-mode');
     } else {
         feed.classList.remove('tiktok-mode');
     }
-    // ---------------------------------
+    // ---------------------------------------------------
 
-    // 3. UI UPDATE
     document.querySelectorAll('.input-group').forEach(el => el.style.display = 'none');
     const title = document.getElementById('app-title');
     
+    // ... (el resto de la función sigue igual con tus ifs de r34, 4chan, etc)
     if(val === 'r34') {
         modoActual = 'r34';
         document.getElementById('r34-inputs').style.display = 'block';
@@ -654,15 +652,15 @@ async function cargarX() {
 }
 
 // --- RENDER GENERICO ACTUALIZADO ---
+// --- RENDER GENERICO (UNIVERSAL TIKTOK STYLE) ---
 function renderCard(src, prev, type, tags, badgeTxt, context) {
     const card = document.createElement('div'); card.className='tarjeta';
     
-    // --- 1. MEDIA Y BADGES ---
+    // --- 1. MEDIA (Igual que antes) ---
     let media='', badge='';
-    // Definimos el badge del tipo de archivo (IMG, VID, GIF)
     if(type==='vid') {
         badge=`<span class="badge bg-vid">VID</span>`;
-        media=`<div class="media-wrapper"><video class="media-content" controls loop playsinline preload="none" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
+        media=`<div class="media-wrapper"><video class="media-content" controls loop playsinline muted preload="metadata" poster="${prev}"><source src="${src}" type="video/mp4"><source src="${src}" type="video/webm"></video><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
     } else if(type==='gif') {
         badge=`<span class="badge bg-gif">GIF</span>`;
         media=`<div class="media-wrapper" onclick="alternarGif(this,'${src}','${prev}')"><img class="media-content" src="${prev}" loading="lazy"><div class="overlay-btn">GIF</div><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
@@ -671,49 +669,71 @@ function renderCard(src, prev, type, tags, badgeTxt, context) {
         media=`<div class="media-wrapper"><img class="media-content" src="${prev}" loading="lazy" onclick="abrirLightbox('${src}','img')"><div class="btn-download" onclick="descargar('${src}')">⬇</div></div>`;
     }
 
-    // Badge de origen (Reddit, X)
-    let sourceBadge = '';
-    if(badgeTxt) sourceBadge = `<span class="badge bg-reddit">${badgeTxt}</span>`;
-    if(context==='x') sourceBadge = `<span class="badge bg-x">X</span>`;
-
-    // --- 2. FOOTER Y DRAWER (ESTRUCTURA TIKTOK) ---
+    // --- 2. LOGICA DE FOOTER Y DRAWER (Aquí está el cambio) ---
     let footerHtml = '';
     
-    if(context === 'r34' || context === 'booru_generic') {
-        // MODO RULE34/BOORU (Con telón de etiquetas)
+    // Aplicamos estilo TikTok a R34, Boorus Y AHORA REDDIT
+    if(context === 'r34' || context === 'booru_generic' || context === 'reddit') {
         
-        // Preparamos una vista previa corta de los tags para el footer
-        const tagsArray = tags.split(' ').filter(t => t.length > 0);
-        const shortTagsStr = tagsArray.slice(0, 5).join(', '); // Primeros 5 tags
-        const remainingCount = tagsArray.length - 5;
-        const verMasTxt = remainingCount > 0 ? `+${remainingCount} más` : 'Ver detalles';
+        let previewText = "";
+        let drawerContent = "";
+        let sourceBadge = "";
+        let drawerTitle = "";
+
+        if (context === 'reddit') {
+            // --- LOGICA ESPECIFICA REDDIT ---
+            sourceBadge = `<span class="badge bg-reddit">REDDIT</span> <span class="badge" style="background:#333; font-size:0.6rem;">${badgeTxt}</span>`; // badgeTxt trae el autor 'u/user'
+            
+            // El "tag" en Reddit es el TÍTULO del post
+            const title = tags; 
+            previewText = title.length > 60 ? title.substring(0, 60) + "..." : title;
+            
+            // En el drawer mostramos el título completo como texto, no como chips
+            drawerTitle = "Título Completo";
+            drawerContent = `<div style="color:#ddd; font-size:1.1rem; line-height:1.5; padding:10px;">${title}</div>`;
+            
+        } else {
+            // --- LOGICA RULE34/BOORU ---
+            sourceBadge = `<span class="badge" style="background:#3b82f6;">R34</span>`;
+            
+            // "tags" es una cadena de etiquetas separadas por espacios
+            const tagsArray = tags.split(' ').filter(t => t.length > 0);
+            const shortTagsStr = tagsArray.slice(0, 5).join(', ');
+            const remaining = tagsArray.length - 5;
+            
+            previewText = `${shortTagsStr}... <span class="ver-mas">${remaining > 0 ? '+'+remaining : ''}</span>`;
+            drawerTitle = "Etiquetas";
+            drawerContent = `<div class="drawer-tags-container">${generarTagsHtml(tags)}</div>`;
+        }
 
         footerHtml = `
             <div class="meta-footer">
-                <div style="display:flex; gap:10px; align-items:center;">
-                    ${badge} <span class="badge" style="background:#3b82f6;">R34</span> </div>
-                <div class="meta-desc-preview" onclick="toggleTags(this)">
-                    ${shortTagsStr}... <span class="ver-mas">${verMasTxt}</span>
+                <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
+                    ${badge} ${sourceBadge}
+                </div>
+                <div class="meta-desc-preview" onclick="toggleTags(this)" style="margin-top:5px;">
+                    ${previewText}
                 </div>
             </div>
 
             <div class="tags-drawer">
                 <div class="drawer-close-x" onclick="toggleTags(this)">✕</div>
-                <h3 style="color:#fff; margin: 0 0 10px 0; font-size:1.1rem;">Etiquetas</h3>
-                <div class="drawer-tags-container">
-                    ${generarTagsHtml(tags)} </div>
+                <h3 style="color:#fff; margin: 0 0 10px 0; font-size:1.1rem; border-bottom:1px solid #333; padding-bottom:10px;">
+                    ${drawerTitle}
+                </h3>
+                ${drawerContent}
             </div>
         `;
     } else {
-        // MODO NORMAL (Reddit, X) - Footer simple
-        footerHtml = `<div class="meta-footer">${badge} ${sourceBadge} <span style="font-size:0.7rem;color:#aaa; margin-left:10px;">${tags.substring(0,50)}...</span></div>`;
+        // Fallback para X (Twitter) u otros modos futuros
+        if(badgeTxt) badge += ` <span class="badge bg-x">${badgeTxt}</span>`;
+        footerHtml = `<div class="meta-footer">${badge} <span style="font-size:0.7rem;color:#aaa; margin-left:10px;">${tags.substring(0,50)}...</span></div>`;
     }
 
     card.innerHTML = media + footerHtml;
     if(type==='vid') videoObserver.observe(card.querySelector('video'));
     document.getElementById('feed-infinito').appendChild(card);
 }
-
 // LISTA DE PROXIES EXCLUSIVA PARA DESCARGAS (Binary friendly)
 const DOWNLOAD_PROXIES = [
     'https://corsproxy.io/?',                    // Opción A: Rápida
