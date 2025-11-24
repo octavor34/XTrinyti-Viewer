@@ -51,23 +51,30 @@
                 <option value="hc">/hc/ - Hardcore</option>
                 <option value="e">/e/ - Ecchi</option>
                 <option value="u">/u/ - Yuri</option>
-                <option value="b">/b/ - Random</option>
+                <option value="b">/b/ - Random (Warning)</option>
                 <option value="r">/r/ - Adult Requests</option>
+                
+                <option value="wg">/wg/ - Wallpapers</option>
+                <option value="a">/a/ - Anime & Manga</option>
+                <option value="v">/v/ - Video Games</option>
+                <option value="vg">/vg/ - Video Game Generals</option>
+                <option value="g">/g/ - Technology</option>
+                
                 <option value="custom">... Escribir Otro (/x/)</option>
-                <div style="position:relative; width:100%;">
-                    <input type="text" id="chan-custom" placeholder="Escribe código (ej: g, v, wg)..." autocomplete="off" style="display:none; margin-top: 5px;">
-                    <div id="chan-sugerencias" class="sugerencias-box-chan"></div>
-                </div>
-                <datalist id="lista-tablones"></datalist>
             </select>
             
-            <input type="text" id="chan-custom" placeholder="Ej: fit, pol, his (sin barras)" style="display:none; margin-top: 5px;">
-
-            <label class="lbl-title">Orden:</label>
+            <div style="position: relative; width: 100%; margin-bottom: 5px;">
+                
+                <input type="text" id="chan-custom" placeholder="Escribe código (ej: g, v)..." autocomplete="off" style="display:none; width: 100%; margin-bottom:0;">
+                
+                <div id="chan-sugerencias" class="sugerencias-box-chan"></div>
+            
+            </div>
+            <label class="lbl-title" style="margin-top: 10px;">Orden:</label>
             <select id="chan-sort">
                 </select>
             
-            <button id="btn-chan-main" class="btn-action" style="background:#004d40">CARGAR TABLÓN</button>
+            <button id="btn-chan-main" class="btn-action" style="background:#004d40; margin-top:10px;">CARGAR TABLÓN</button>
         </div>
 
         <div id="reddit-inputs" class="input-group">

@@ -395,18 +395,17 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 }
 /* --- AUTOCOMPLETADO 4CHAN (Estilo Lista) --- */
 .sugerencias-box-chan {
-    position: absolute;
-    top: 100%;
+    position: absolute; /* Flota */
+    top: 100%;          /* Justo debajo del input */
     left: 0;
     right: 0;
-    background: #111; /* Fondo oscuro */
+    background: #111;
     border: 1px solid #333;
-    border-radius: 0 0 8px 8px;
-    z-index: 200;
-    max-height: 250px; /* Altura máxima antes de scroll */
-    overflow-y: auto; /* Scroll vertical activado */
-    display: none; /* Oculto por defecto */
-    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+    border-top: none;   /* Para que parezca continuación del input */
+    z-index: 500;       /* Para tapar el botón de abajo */
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
 }
 
 .chan-suggestion-item {
