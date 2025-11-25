@@ -772,17 +772,26 @@ inp.addEventListener('input', (e) => {
         try {
             // --- BIFURCACIÓN DE LÓGICA ---
             
-            // 1. ANIME-PICTURES (Prioridad Alta - Verificamos variable específica)
+            // 1. ANIME-PICTURES (Modo Blindado con Proxy)
             if (currentBooru === 'anime_pictures') {
-                const query = val.trim(); // AP usa espacios, NO guiones
-                const url = `https://anime-pictures.net/api/v3/tags?lang=en&tag=${encodeURIComponent(query)}&page=0&limit=8`;
+                const query = val.trim();
+                // Usamos AllOrigins explícitamente porque la API de AP bloquea CORS agresivamente
+                // y fetchSmart a veces falla en negociar eso automáticamente.
+                const targetApi = `https://anime-pictures.net/api/v3/tags?lang=en&tag=${encodeURIComponent(query)}&page=0&limit=8`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetApi)}`;
                 
-                const data = await fetchSmart(url);
+                const res = await fetch(proxyUrl);
+                const rawWrapper = await res.json(); // AllOrigins devuelve un JSON wrapper
                 
-                if (data && data.success === true && data.tags) {
-                    mostrarSugerenciasAP(data.tags);
-                } else {
-                    rBox.style.display = 'none';
+                // Desempaquetamos el contenido real (que viene como string dentro de 'contents')
+                if (rawWrapper && rawWrapper.contents) {
+                    const data = JSON.parse(rawWrapper.contents);
+                    
+                    if (data && data.success === true && data.tags) {
+                        mostrarSugerenciasAP(data.tags);
+                    } else {
+                        rBox.style.display = 'none';
+                    }
                 }
             }
             
