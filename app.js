@@ -754,31 +754,53 @@ function stepZoom() {
 }
 
 // ==========================================
-// AUTOCOMPLETADO (LÓGICA HÍBRIDA)
+// AUTOCOMPLETADO (NITRO + CACHÉ)
 // ==========================================
 
 const inp = document.getElementById('input-tags-real');
 const rBox = document.getElementById('sugerencias-box');
+let tagCache = {}; // <--- MEMORIA RAM PARA TUS TAGS
 
 inp.addEventListener('input', (e) => {
     const val = inp.value;
-    if (val.trim().length < 2) { rBox.style.display = 'none'; return; }
+    
+    // 1. Limpieza rápida
+    if (val.trim().length < 2) { 
+        rBox.style.display = 'none'; 
+        return; 
+    }
 
+    const query = val.trim().replace(/ /g, '_');
+
+    // 2. ¿YA LO TENEMOS? (VELOCIDAD DE LA LUZ)
+    // Si ya buscaste esto antes, muéstralo YA y no esperes nada.
+    if (tagCache[query]) {
+        mostrarSugerenciasR34(tagCache[query]);
+        return; 
+    }
+
+    // 3. SI ES NUEVO, BUSCAMOS (PERO RÁPIDO)
     clearTimeout(timerDebounce);
+    
+    // Bajamos de 300ms a 100ms. Se sentirá mucho más "snappy".
     timerDebounce = setTimeout(async () => {
         try {
-            if(window.debugEnabled) logDebug(`[BUSCADOR] R34: "${val}"`);
+            if(window.debugEnabled) logDebug(`[BUSCADOR] Fetching: "${query}"`);
 
-            // Lógica estándar R34
-            const query = val.trim().replace(/ /g, '_');
             const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
             const data = await fetchSmart(url);
+            
+            // GUARDAMOS EN MEMORIA PARA LA PRÓXIMA
+            if (data && Array.isArray(data) && data.length > 0) {
+                tagCache[query] = data;
+            }
+            
             mostrarSugerenciasR34(data);
 
         } catch (e) {
             logDebug(`[ERROR] ${e.message}`);
         }
-    }, 300);
+    }, 150); // <--- 150ms es el punto dulce entre velocidad y no saturar la red
 });
 
 // --- RENDERIZADO RULE34 (Simple) ---
