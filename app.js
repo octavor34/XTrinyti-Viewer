@@ -13,6 +13,7 @@ if (typeof window.logDebug === 'undefined') {
 
 // --- ESTADO GLOBAL ---
 let modoActual = 'r34';
+let color = '#3b82f6'; // Color por defecto (Azul Rule34)
 let paginaActual = 0;
 let redditAfter = '';
 let cargando = false;
@@ -116,10 +117,13 @@ function cambiarModo() {
     if (BOORU_SITES[val]) {
         modoActual = 'booru_generic';
         currentBooru = val;
+
+        // Asignamos color según el sitio (puedes añadir más si quieres)
+        color = val === 'r34' ? '#3b82f6' : '#ea580c'; 
+
         document.getElementById('r34-inputs').style.display = 'block';
         feed.classList.add('tiktok-mode');
         document.getElementById('app-title').innerText = val.toUpperCase().replace('_', ' ') + " VIEWER";
-        const color = val === 'anime_pictures' ? '#ff77aa' : '#3b82f6';
         document.documentElement.style.setProperty('--accent', color);
     }
     // B. OTROS MODOS
@@ -153,7 +157,6 @@ function cambiarModo() {
     const btnSearch = document.querySelector('#r34-inputs .btn-action');
     if (btnSearch) {
         if (val === 'r34') btnSearch.innerText = "BUSCAR EN R34";
-        else if (val === 'anime_pictures') btnSearch.innerText = "BUSCAR EN AP";
         else if (val.includes('booru')) btnSearch.innerText = "BUSCAR";
     }
 }
@@ -296,18 +299,7 @@ async function cargarPaginaBooru(pageNum) {
     try {
         const rawData = await fetchSmart(url);
         let postsLimpios = [];
-
-        if (site.adapter === 'ap_v3') {
-            if (!rawData.posts) throw new Error("Estructura inválida");
-            postsLimpios = rawData.posts.map(p => ({
-                file_url: p.file_url ? `https://anime-pictures.net${p.file_url}` : '',
-                preview_url: p.small_preview ? `https://anime-pictures.net${p.small_preview}` : '',
-                type: 'img',
-                tags: "Ver detalles en sitio"
-            }));
-        } else {
             postsLimpios = rawData;
-        }
 
         document.getElementById('loading-status').style.display = 'none';
         document.getElementById('centinela-scroll').style.display = 'flex';
@@ -650,8 +642,6 @@ function renderCard(src, prev, type, tags, badgeTxt, context) {
             preview = tags.substring(0, 60) + "...";
         } else {
             let label = context === 'r34' ? 'R34' : context.substring(0,4).toUpperCase();
-            if (context === 'anime_pictures') label = 'AP';
-            let color = (context === 'anime_pictures') ? '#ff77aa' : '#3b82f6';
             sBadge = `<span class="badge" style="background:${color};">${label}</span>`;
             title = "Etiquetas";
             const tagsArr = tags.split(' ').filter(t=>t);
@@ -784,67 +774,23 @@ const rBox = document.getElementById('sugerencias-box');
 
 inp.addEventListener('input', (e) => {
     const val = inp.value;
-    
-    // 1. Limpieza básica
-    if (val.trim().length < 2) { 
-        rBox.style.display = 'none'; 
-        return; 
-    }
+    if (val.trim().length < 2) { rBox.style.display = 'none'; return; }
 
     clearTimeout(timerDebounce);
     timerDebounce = setTimeout(async () => {
         try {
-            if(window.debugEnabled) logDebug(`[BUSCADOR] Buscando: "${val}"`);
+            if(window.debugEnabled) logDebug(`[BUSCADOR] R34: "${val}"`);
 
-            // 1. ANIME-PICTURES (Usando CodeTabs - Más transparente)
-            if (currentBooru === 'anime_pictures') {
-                const query = val.trim();
-                const targetApi = `https://anime-pictures.net/api/v3/tags?lang=en&tag=${encodeURIComponent(query)}&page=0&limit=8`;
-                
-                // CAMBIO: Usamos CodeTabs. Es un proxy directo, no envuelve nada en "contents".
-                const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetApi)}`;
-                
-                if(window.debugEnabled) logDebug(`[AP-TAGS] Proxy: ${proxyUrl}`);
-
-                try {
-                    const res = await fetch(proxyUrl);
-                    const txt = await res.text();
-
-                    // --- DETECTOR DE HTML (EVITA EL "JSON ROTO") ---
-                    if (txt.trim().startsWith('<')) {
-                        logDebug(`[AP-TAGS] ERROR: El servidor devolvió HTML (Bloqueo Cloudflare/403).`);
-                        logDebug(`[AP-TAGS] Preview: ${txt.substring(0, 50)}...`);
-                        return; // Abortamos para no explotar
-                    }
-
-                    const data = JSON.parse(txt);
-
-                    if (data && data.success === true && data.tags) {
-                        if(window.debugEnabled) logDebug(`[AP-TAGS] Éxito: ${data.tags.length} tags.`);
-                        mostrarSugerenciasAP(data.tags);
-                    } else {
-                        rBox.style.display = 'none';
-                    }
-                } catch (errAP) {
-                    logDebug(`[AP-TAGS] FALLO: ${errAP.message}`);
-                }
-            }
-            
-            // 2. RULE34 / GENÉRICOS
-            else if (modoActual === 'r34' || modoActual === 'booru_generic') {
-                const query = val.trim().replace(/ /g, '_');
-                const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
-                const data = await fetchSmart(url);
-                mostrarSugerenciasR34(data);
-            }
-            else {
-                rBox.style.display = 'none';
-            }
+            // Lógica estándar R34
+            const query = val.trim().replace(/ /g, '_');
+            const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
+            const data = await fetchSmart(url);
+            mostrarSugerenciasR34(data);
 
         } catch (e) {
-            logDebug(`[SISTEMA] Error autocompletado: ${e.message}`);
+            logDebug(`[ERROR] ${e.message}`);
         }
-    }, 300); 
+    }, 300);
 });
 
 // --- RENDERIZADO RULE34 (Simple) ---
@@ -856,25 +802,6 @@ function mostrarSugerenciasR34(data) {
 
     data.slice(0, 8).forEach(item => {
         crearElementoSugerencia(item.value, item.label, 'r34');
-    });
-    rBox.style.display = 'block';
-}
-
-// --- RENDERIZADO ANIME-PICTURES (Complejo) ---
-function mostrarSugerenciasAP(tagsArray) {
-    rBox.innerHTML = '';
-    if (!tagsArray || tagsArray.length === 0) {
-        rBox.style.display = 'none'; return;
-    }
-
-    tagsArray.forEach(tagObj => {
-        // AP devuelve objetos: { "tag": "nombre", "num_pub": 1234, "category": 1 ... }
-        // La etiqueta label para mostrar la armamos nosotros: "nombre (1234)"
-        const nombre = tagObj.tag;
-        const count = tagObj.num_pub ? `(${tagObj.num_pub})` : '';
-        const labelCompleto = `${nombre} ${count}`;
-        
-        crearElementoSugerencia(nombre, labelCompleto, 'ap');
     });
     rBox.style.display = 'block';
 }
@@ -894,9 +821,8 @@ function crearElementoSugerencia(valorReal, textoMostrar, origen) {
     d.innerHTML = html;
     
     d.onclick = () => {
-        // AP prefiere espacios, R34 guiones bajos. 
-        // Si es AP, no forzamos el guion bajo.
-        const tagFinal = origen === 'ap' ? valorReal : valorReal.replace(/ /g, '_');
+       // Siempre forzamos guiones bajos porque ya no usamos AP
+        const tagFinal = valorReal.replace(/ /g, '_');
         
         agregarTag(tagFinal);
         inp.value = '';
@@ -908,18 +834,22 @@ function crearElementoSugerencia(valorReal, textoMostrar, origen) {
 }
 
 // Eventos de teclado (Enter y Backspace) se mantienen igual
+// Manejo del ENTER y BACKSPACE (Versión Limpia)
 inp.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { 
         e.preventDefault(); 
         const t = inp.value.trim(); 
         if(t) { 
-            // Detección rápida de contexto para formatear al dar Enter manual
-            const tagFinal = modoActual === 'anime_pictures' ? t : t.replace(/ /g, '_');
+            // Como ya no usamos AP, siempre reemplazamos espacios por guiones bajos
+            // para que Rule34 y otros boorus lo entiendan.
+            const tagFinal = t.replace(/ /g, '_');
+            
             agregarTag(tagFinal); 
             inp.value = ''; 
             rBox.style.display = 'none'; 
         } 
     }
+    // Esto permite borrar el último tag (chip) si borras con la caja vacía
     if (e.key === 'Backspace' && !inp.value) { misTags.pop(); renderChips(); }
 });
 

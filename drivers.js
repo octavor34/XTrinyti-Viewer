@@ -46,18 +46,5 @@ const BOORU_SITES = {
             type: 'r34_legacy',
             separator: '_'
         }
-    },
-    'anime_pictures': {
-        url: 'https://anime-pictures.net',
-        // Endpoint para buscar IMÁGENES
-        endpoint: '/api/v3/posts?lang=en', 
-        key_needed: false,
-        adapter: 'ap_v3', // Marcamos que usa adaptador V3
-        // Endpoint para buscar TAGS (Autocompletado)
-        auto: {
-            url: 'https://anime-pictures.net/api/v3/tags?lang=en',
-            param: 'tag', // AP usa 'tag=' en vez de 'q='
-            separator: ' ' // AP usa espacios, no guiones
-        }
     }
 };
