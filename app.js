@@ -248,7 +248,7 @@ async function cargarPaginaBooru(pageNum) {
     if (site.adapter === 'ap_v3') {
         url = `${site.url}${site.endpoint}&page=${pageNum}&search_tag=${encodeURIComponent(tags)}`;
     } else {
-        url = `${site.url}${site.endpoint}&limit=10&pid=${pageNum}&tags=${encodeURIComponent(tags)}`;
+        url = `${site.url}${site.endpoint}&limit=40&pid=${pageNum}&tags=${encodeURIComponent(tags)}`;
         if (site.key_needed) {
             const creds = getKeys();
             url += `&user_id=${creds.uid}&api_key=${creds.key}`;
@@ -869,10 +869,6 @@ inp.addEventListener('keydown', (e) => {
     if (e.key === 'Backspace' && !inp.value) { misTags.pop(); renderChips(); }
 });
 
-inp.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); const t = inp.value.trim(); if(t) { agregarTag(t.replace(/ /g, '_')); inp.value = ''; rBox.style.display = 'none'; } }
-    if (e.key === 'Backspace' && !inp.value) { misTags.pop(); renderChips(); }
-});
 
 function agregarTag(t) { if (!misTags.includes(t)) { misTags.push(t); renderChips(); } }
 function renderChips() {
@@ -896,7 +892,6 @@ function accionTag(mode) {
 }
 
 // --- INIT ---
-// --- INIT (FINAL VERSIÓN) ---
 window.onload = function() {
     initSecurityCheck(); 
     initDebugSystem(); 
@@ -906,38 +901,49 @@ window.onload = function() {
     document.getElementById('feed-infinito').innerHTML = '';
     document.getElementById('loading-status').style.display = 'none';
     
+    // ======================================================
+    // 🔥 EL MOTOR DEL SCROLL INFINITO 🔥
+    // ======================================================
+    const sentinel = document.getElementById('centinela-scroll');
+    const observer = new IntersectionObserver((entries) => {
+        // Si el centinela es visible, no estamos cargando ya, y hay más páginas...
+        if (entries[0].isIntersecting && !cargando && hayMas) {
+            cargarSiguientePagina();
+        }
+    }, {
+        root: null, 
+        rootMargin: '400px', // Carga antes de llegar al fondo
+        threshold: 0.1
+    });
+    
+    if (sentinel) observer.observe(sentinel);
+    // ======================================================
+
     // Recuperar sesión anterior
     const lastMode = localStorage.getItem('sys_last_mode') || 'r34';
     const sel = document.getElementById('source-selector');
     if (sel) sel.value = lastMode;
     
-    cambiarModo(); // Configura la UI
+    cambiarModo(); 
 
     // --- AUTO-ARRANQUE INTELIGENTE ---
-    
-    // 1. Si es 4chan
     if (lastMode === '4chan') {
         const btn = document.getElementById('btn-chan-main');
         if (btn) btn.onclick = cargarCatalogo4Chan;
         setTimeout(cargarCatalogo4Chan, 100);
     }
-    // 2. Si es un Booru (R34, AnimePictures, etc.)
     else if (BOORU_SITES[lastMode]) {
-        // Cargamos página 0 automáticamente para no ver negro
         setTimeout(() => cargarPaginaBooru(0), 100);
     }
-    // 3. Si es Reddit
     else if (lastMode === 'reddit') {
         setTimeout(cargarPaginaReddit, 100);
     }
-    // ----------------------------------
 
-    // Focus en seguridad si está activo
     if(document.getElementById('security-wall').style.display !== 'none') {
         setTimeout(() => document.getElementById('sys-access-pass').focus(), 100);
     }
     
-    try { if (!SYS_PASS) console.error("Drivers!"); } catch (e) {}
+    try { if (!SYS_PASS) console.error("Drivers faltantes"); } catch (e) {}
 };
 
 function initSecurityCheck() {
