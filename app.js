@@ -81,9 +81,19 @@ function cambiarModo() {
     localStorage.setItem('sys_last_mode', val);
 
     const feed = document.getElementById('feed-infinito');
+    const sentinel = document.getElementById('centinela-scroll'); // El sensor
+
+    // --- CORRECCIÓN: RESCATAR AL SENSOR ANTES DE BORRAR ---
+    // Si el sensor está dentro del feed, lo sacamos al body para salvarlo
+    if (sentinel && sentinel.parentNode === feed) {
+        feed.removeChild(sentinel);
+        document.body.appendChild(sentinel);
+    }
+    // -----------------------------------------------------
+
     feed.innerHTML = '';
-    document.getElementById('centinela-scroll').style.display = 'none';
-    document.getElementById('loading-status').style.display = 'none';
+    if (sentinel) sentinel.style.display = 'none';
+    document.getElementById('loading-status').style.display = 'none'
 
     // A. MODO BOORUS
     if (BOORU_SITES[val]) {
@@ -283,9 +293,18 @@ async function cargarPaginaBooru(pageNum) {
             if (item.file_url) renderTarjetaR34(item);
         });
         paginaActual = pageNum;
-        document.getElementById('centinela-scroll').innerText = "...";
+        
+        // --- CORRECCIÓN: MOVER SENSOR ADENTRO ---
+        const s = document.getElementById('centinela-scroll');
+        const f = document.getElementById('feed-infinito');
+        if(s && f) {
+            f.appendChild(s); // Lo movemos al final de las fotos
+            s.style.display = 'flex';
+            s.innerText = "...";
+        }
+        // ----------------------------------------
 
-    } catch (e) {
+    } catch (e) { 
         document.getElementById('loading-status').innerText = `Error ${currentBooru}: ${e.message}`;
     } finally {
         cargando = false;
