@@ -794,57 +794,49 @@ inp.addEventListener('input', (e) => {
     clearTimeout(timerDebounce);
     timerDebounce = setTimeout(async () => {
         try {
-            // --- DIAGNÓSTICO: Inicio de búsqueda ---
-            if(window.debugEnabled) logDebug(`[BUSCADOR] Buscando: "${val}" en ${currentBooru}`);
+            if(window.debugEnabled) logDebug(`[BUSCADOR] Buscando: "${val}"`);
 
-            // 1. ANIME-PICTURES (Modo Blindado con Logs)
+            // 1. ANIME-PICTURES (Usando CodeTabs - Más transparente)
             if (currentBooru === 'anime_pictures') {
                 const query = val.trim();
-                // AP v3 Tags Endpoint
                 const targetApi = `https://anime-pictures.net/api/v3/tags?lang=en&tag=${encodeURIComponent(query)}&page=0&limit=8`;
-                // Usamos AllOrigins forzado
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetApi)}`;
                 
-                if(window.debugEnabled) logDebug(`[AP-TAGS] Consultando Proxy...`);
+                // CAMBIO: Usamos CodeTabs. Es un proxy directo, no envuelve nada en "contents".
+                const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetApi)}`;
+                
+                if(window.debugEnabled) logDebug(`[AP-TAGS] Proxy: ${proxyUrl}`);
 
                 try {
                     const res = await fetch(proxyUrl);
-                    const rawWrapper = await res.json(); 
-                    
-                    if (rawWrapper && rawWrapper.contents) {
-                        // Intentamos parsear lo que hay dentro
-                        let data;
-                        try {
-                            data = JSON.parse(rawWrapper.contents);
-                        } catch (jsonErr) {
-                            logDebug(`[AP-TAGS] JSON ROTO: ${jsonErr.message}`);
-                            throw jsonErr;
-                        }
+                    const txt = await res.text();
 
-                        if (data && data.success === true && data.tags) {
-                            if(window.debugEnabled) logDebug(`[AP-TAGS] Éxito. ${data.tags.length} tags.`);
-                            mostrarSugerenciasAP(data.tags);
-                        } else {
-                            if(window.debugEnabled) logDebug(`[AP-TAGS] Sin resultados.`);
-                            rBox.style.display = 'none';
-                        }
+                    // --- DETECTOR DE HTML (EVITA EL "JSON ROTO") ---
+                    if (txt.trim().startsWith('<')) {
+                        logDebug(`[AP-TAGS] ERROR: El servidor devolvió HTML (Bloqueo Cloudflare/403).`);
+                        logDebug(`[AP-TAGS] Preview: ${txt.substring(0, 50)}...`);
+                        return; // Abortamos para no explotar
+                    }
+
+                    const data = JSON.parse(txt);
+
+                    if (data && data.success === true && data.tags) {
+                        if(window.debugEnabled) logDebug(`[AP-TAGS] Éxito: ${data.tags.length} tags.`);
+                        mostrarSugerenciasAP(data.tags);
                     } else {
-                        logDebug(`[AP-TAGS] Proxy vacío.`);
+                        rBox.style.display = 'none';
                     }
                 } catch (errAP) {
-                    logDebug(`[AP-TAGS] ERROR: ${errAP.message}`);
+                    logDebug(`[AP-TAGS] FALLO: ${errAP.message}`);
                 }
             }
             
-            // 2. RULE34 / BOORUS CLÁSICOS
+            // 2. RULE34 / GENÉRICOS
             else if (modoActual === 'r34' || modoActual === 'booru_generic') {
                 const query = val.trim().replace(/ /g, '_');
                 const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
-                if(window.debugEnabled) logDebug(`[R34-TAGS] Buscando...`);
                 const data = await fetchSmart(url);
                 mostrarSugerenciasR34(data);
             }
-            
             else {
                 rBox.style.display = 'none';
             }

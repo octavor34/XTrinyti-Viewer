@@ -1,39 +1,40 @@
-// debug.js - MÓDULO DE DIAGNÓSTICO (OPCIONAL)
+// debug.js - MÓDULO DE DIAGNÓSTICO (AUTO-ACTIVADO)
 
-// Variable global para controlar estado
-window.debugEnabled = false; 
+// Variable global: EMPIEZA ENCENDIDA
+window.debugEnabled = true; 
 
 // Sobrescribimos la función vacía por defecto
 window.logDebug = function(message) {
+    if (!window.debugEnabled) return; // Doble chequeo
+
     let consoleDiv = document.getElementById('debug-console');
-    if (!consoleDiv) return; // Si no hay consola en el DOM, no hacemos nada
+    if (!consoleDiv) return; 
 
     const timestamp = new Date().toISOString().substr(11, 8); 
-    // Usamos HTML seguro
-    consoleDiv.insertAdjacentHTML('beforeend', `<div style="border-bottom:1px solid #220000; padding:2px;">
-        <span style="color:#555">[${timestamp}]</span> ${message}
+    
+    // Inserción segura y rápida
+    consoleDiv.insertAdjacentHTML('beforeend', `<div style="border-bottom:1px solid #330000; padding:2px; color:#ff5555;">
+        <span style="color:#888; font-size:0.6rem">[${timestamp}]</span> ${message}
     </div>`);
     
-    // Auto-scroll
+    // Auto-scroll al fondo
     consoleDiv.scrollTop = consoleDiv.scrollHeight;
 };
 
 // Sobrescribimos el iniciador
 window.initDebugSystem = function() {
-    // Siempre empieza apagado (Volátil)
-    window.debugEnabled = false;
-    
-    // Limpieza de memoria vieja por si acaso
-    localStorage.removeItem('sys_debug_mode'); 
+    // FORZAMOS EL ENCENDIDO INMEDIATO
+    window.debugEnabled = true;
     
     const consoleDiv = document.getElementById('debug-console');
     if (consoleDiv) {
-        consoleDiv.style.display = 'none';
-        consoleDiv.innerHTML = '<div style="color:#444">--- Sistema Debug Listo ---</div>';
+        // LO MOSTRAMOS DE GOLPE
+        consoleDiv.style.display = 'block'; 
+        consoleDiv.innerHTML = '<div style="color:#44ff44; font-weight:bold;">--- DEBUG SIEMPRE ACTIVO ---</div>';
     }
     
     updateDebugButtonUI();
-    console.log("Sistema de Debug: CARGADO");
+    logDebug("Sistema de depuración: INICIADO AUTOMÁTICAMENTE");
 };
 
 // Funciones exclusivas del módulo
@@ -42,7 +43,7 @@ window.toggleDebugMode = function() {
     const consoleDiv = document.getElementById('debug-console');
     if (consoleDiv) consoleDiv.style.display = window.debugEnabled ? 'block' : 'none';
     updateDebugButtonUI();
-    if(window.debugEnabled) logDebug("Sistema de depuración: ACTIVADO");
+    if(window.debugEnabled) logDebug("Sistema de depuración: REACTIVADO MANUALMENTE");
 };
 
 window.clearDebugLog = function() {
@@ -67,7 +68,10 @@ window.updateDebugButtonUI = function() {
     }
 };
 
-// Capturador de errores global
+// Capturador de errores global (Para cazar fallos de sintaxis o variables no definidas)
 window.onerror = function(msg, url, line) {
-    logDebug(`CRITICAL ERROR: ${msg} @ L${line}`);
+    // Solo logueamos si el sistema de log ya cargó, si no, usamos console.log nativo
+    if (typeof logDebug === 'function') {
+        logDebug(`CRITICAL ERROR: ${msg} @ L${line}`);
+    }
 };
