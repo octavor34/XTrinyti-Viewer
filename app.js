@@ -859,14 +859,13 @@ window.onload = function() {
     // ======================================================
     const sentinel = document.getElementById('centinela-scroll');
     const observer = new IntersectionObserver((entries) => {
-        // Si el centinela es visible, no estamos cargando ya, y hay más páginas...
         if (entries[0].isIntersecting && !cargando && hayMas) {
             cargarSiguientePagina();
         }
     }, {
         root: null, 
-        rootMargin: '400px', // Carga antes de llegar al fondo
-        threshold: 0.1
+        rootMargin: '600px', // Aumentado de 400 a 600px para anticipar más
+        threshold: 0.01 // Reducido a 0.01 (basta con que se vea un pixel)
     });
     
     if (sentinel) observer.observe(sentinel);

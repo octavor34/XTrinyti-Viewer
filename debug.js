@@ -1,59 +1,7 @@
-// debug.js - SISTEMA FANTASMA (AUTO-INYECCIÓN TOTAL)
+// debug.js - SISTEMA FANTASMA (CORREGIDO)
 window.debugEnabled = true; 
 
-// AUTO-CONSTRUCCIÓN DE LA INTERFAZ
-(function inyectarSistemaCompleto() {
-    // 1. Botón Candado en el Header
-    const headerDiv = document.querySelector('header div');
-    if (headerDiv) {
-        const btnLock = document.createElement('button');
-        btnLock.className = 'btn-icon';
-        btnLock.innerHTML = '🔒';
-        btnLock.onclick = window.abrirAdminLogin;
-        headerDiv.insertBefore(btnLock, headerDiv.firstChild);
-    }
-
-    // 2. Panel de Admin (El menú de botones) - ¡AHORA SE CREA AQUÍ!
-    const panelHTML = `
-    <div id="panel-admin" style="display:none;">
-        <div class="admin-header">
-            <span>PANEL SYSTEM</span>
-            <button onclick="cerrarAdminPanel()" style="background:none;border:none;color:#fff;cursor:pointer;">✕</button>
-        </div>
-        <div style="padding:15px;">
-            <label class="lbl-title" style="margin-bottom:10px; display:block;">Diagnóstico y Control:</label>
-            <button id="btn-toggle-debug" class="btn-action" style="margin-bottom: 10px;" onclick="toggleDebugMode()">
-                🐞 ACTIVAR DEBUG
-            </button>
-            <button class="btn-action" style="background: #220000; color: #ff5555; border: 1px solid #440000;" onclick="clearDebugLog()">
-                🗑️ LIMPIAR CONSOLA
-            </button>
-        </div>
-    </div>`;
-    document.body.insertAdjacentHTML('beforeend', panelHTML);
-
-    // 3. Modal de Login
-    const modalHTML = `
-    <div id="modal-admin-login" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-            <h3>ACCESO RESTRINGIDO</h3>
-            <input type="password" id="admin-pass-input" placeholder="Contraseña..." style="margin-bottom:15px;" onkeydown="if(event.key==='Enter') checkAdminPass()">
-            <div style="display:flex; gap:10px; justify-content: center;">
-                <button class="btn-action" onclick="checkAdminPass()">ENTRAR</button>
-                <button class="btn-back" onclick="document.getElementById('modal-admin-login').style.display='none'">CANCELAR</button>
-            </div>
-            <div id="login-msg" style="color:red; margin-top:10px; font-size:0.8rem; display:none;">Acceso Denegado</div>
-        </div>
-    </div>`;
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-    // 4. Consola Visual
-    document.body.insertAdjacentHTML('beforeend', `<div id="debug-console"></div>`);
-    
-    setTimeout(initDebugSystem, 500);
-})();
-
-// LÓGICA DE CONTROL
+// 1. DEFINIR FUNCIONES PRIMERO (Para que existan cuando las llamemos)
 window.abrirAdminLogin = function() {
     const panel = document.getElementById('panel-admin');
     if (panel && panel.style.display === 'block') {
@@ -63,7 +11,10 @@ window.abrirAdminLogin = function() {
     const modal = document.getElementById('modal-admin-login');
     if(modal) {
         modal.style.display = 'flex';
-        setTimeout(() => document.getElementById('admin-pass-input').focus(), 100);
+        setTimeout(() => {
+            const inp = document.getElementById('admin-pass-input');
+            if(inp) inp.focus();
+        }, 100);
     }
 };
 
@@ -71,7 +22,7 @@ window.checkAdminPass = function() {
     const input = document.getElementById('admin-pass-input');
     const msg = document.getElementById('login-msg');
     
-    // Verifica contra drivers.js o usa admin123 por defecto
+    // SYS_PASS viene de drivers.js
     const passReal = (typeof SYS_PASS !== 'undefined') ? SYS_PASS : "admin123";
     
     if (input.value === passReal) {
@@ -92,7 +43,6 @@ window.cerrarAdminPanel = function() {
     if(p) p.style.display = 'none';
 };
 
-// LÓGICA DE DEBUGGING
 window.logDebug = function(message) {
     if (!window.debugEnabled) return;
     let consoleDiv = document.getElementById('debug-console');
@@ -144,3 +94,64 @@ window.updateDebugButtonUI = function() {
 window.onerror = function(msg, url, line) {
     if (typeof logDebug === 'function') logDebug(`ERROR: ${msg} @ L${line}`);
 };
+
+// 2. EJECUTAR INYECCIÓN (Ahora que las funciones existen)
+(function inyectarSistemaCompleto() {
+    // A. Botón Candado
+    const headerDiv = document.querySelector('header div');
+    if (headerDiv) {
+        // Evitar duplicados si el script corre dos veces
+        if (!headerDiv.querySelector('.lock-btn-injected')) {
+            const btnLock = document.createElement('button');
+            btnLock.className = 'btn-icon lock-btn-injected';
+            btnLock.innerHTML = '🔒';
+            btnLock.onclick = window.abrirAdminLogin; // AHORA SÍ EXISTE
+            headerDiv.insertBefore(btnLock, headerDiv.firstChild);
+        }
+    }
+
+    // B. Panel de Admin
+    if (!document.getElementById('panel-admin')) {
+        const panelHTML = `
+        <div id="panel-admin" style="display:none;">
+            <div class="admin-header">
+                <span>PANEL SYSTEM</span>
+                <button onclick="cerrarAdminPanel()" style="background:none;border:none;color:#fff;cursor:pointer;">✕</button>
+            </div>
+            <div style="padding:15px;">
+                <label class="lbl-title" style="margin-bottom:10px; display:block;">Diagnóstico y Control:</label>
+                <button id="btn-toggle-debug" class="btn-action" style="margin-bottom: 10px;" onclick="toggleDebugMode()">
+                    🐞 ACTIVAR DEBUG
+                </button>
+                <button class="btn-action" style="background: #220000; color: #ff5555; border: 1px solid #440000;" onclick="clearDebugLog()">
+                    🗑️ LIMPIAR CONSOLA
+                </button>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', panelHTML);
+    }
+
+    // C. Modal Login
+    if (!document.getElementById('modal-admin-login')) {
+        const modalHTML = `
+        <div id="modal-admin-login" class="modal-overlay" style="display:none;">
+            <div class="modal-box">
+                <h3>ACCESO RESTRINGIDO</h3>
+                <input type="password" id="admin-pass-input" placeholder="Contraseña..." style="margin-bottom:15px;" onkeydown="if(event.key==='Enter') checkAdminPass()">
+                <div style="display:flex; gap:10px; justify-content: center;">
+                    <button class="btn-action" onclick="checkAdminPass()">ENTRAR</button>
+                    <button class="btn-back" onclick="document.getElementById('modal-admin-login').style.display='none'">CANCELAR</button>
+                </div>
+                <div id="login-msg" style="color:red; margin-top:10px; font-size:0.8rem; display:none;">Acceso Denegado</div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    // D. Consola
+    if (!document.getElementById('debug-console')) {
+        document.body.insertAdjacentHTML('beforeend', `<div id="debug-console"></div>`);
+    }
+    
+    setTimeout(initDebugSystem, 500);
+})();

@@ -106,7 +106,15 @@ button.btn-action { width: 100%; padding: 16px; background: var(--accent); color
 .lb-btn { background: rgba(50,50,50,0.8); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; border: 1px solid #666; backdrop-filter: blur(4px); font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
 
 #loading-status { text-align: center; padding: 40px; color: #666; font-family: monospace; display:none;}
-#centinela-scroll { height: 80px; display: flex; justify-content: center; align-items: center; color: #444; }
+#centinela-scroll { 
+    height: 150px; /* Más alto para asegurar detección */
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    color: #444; 
+    scroll-snap-align: end; /* IMPORTANTE: Permite hacer snap al final */
+    padding-bottom: 50px;
+}
 .error-text { color: #ff5555; font-weight: bold; display:block; margin-bottom:10px;}
 
 #modal-tag-options { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 3000; display: none; justify-content: center; align-items: flex-end; }
