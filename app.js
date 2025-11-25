@@ -35,14 +35,14 @@ let currentBooru = 'r34';
 // ==========================================
 const videoObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-        // Si el video está al 60% visible, dale play. Si no, pausa.
-        if (entry.isIntersecting) {
-            entry.target.play().catch(() => {}); // El catch evita errores si el navegador bloquea autoplay
-        } else {
+        // Lógica Práctica:
+        // 1. Si el video sale de la pantalla (!isIntersecting), lo PAUSAMOS para no quemar tu CPU.
+        // 2. Si el video entra, NO hacemos nada. Esperamos a que tú le des click.
+        if (!entry.isIntersecting) {
             entry.target.pause();
         }
     });
-}, { threshold: 0.6 });
+}, { threshold: 0.1 }); // Se activa apenas el 10% del video sale/entra
 // ==========================================
 
 // NOTA: BOORU_SITES se carga desde drivers.js
