@@ -845,55 +845,60 @@ function accionTag(mode) {
 }
 
 // --- INIT ---
+// --- INIT (VERSIÓN CORREGIDA Y LIMPIA) ---
 window.onload = function() {
-    initSecurityCheck(); 
+    // 1. INICIALIZACIONES BÁSICAS
+    // initSecurityCheck(); <--- ESTO ERA EL ERROR, LO HE BORRADO
     initDebugSystem(); 
     initChanAutocomplete();
 
-    // Limpieza inicial
-    document.getElementById('feed-infinito').innerHTML = '';
-    document.getElementById('loading-status').style.display = 'none';
-    
-    // ======================================================
-    // 🔥 EL MOTOR DEL SCROLL INFINITO 🔥
-    // ======================================================
+    // 2. LIMPIEZA DE UI
+    const feed = document.getElementById('feed-infinito');
+    const loading = document.getElementById('loading-status');
     const sentinel = document.getElementById('centinela-scroll');
-    const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !cargando && hayMas) {
-            cargarSiguientePagina();
-        }
-    }, {
-        root: null, 
-        rootMargin: '600px', // Aumentado de 400 a 600px para anticipar más
-        threshold: 0.01 // Reducido a 0.01 (basta con que se vea un pixel)
-    });
     
-    if (sentinel) observer.observe(sentinel);
-    // ======================================================
-
-    // Recuperar sesión anterior
-    const lastMode = localStorage.getItem('sys_last_mode') || 'r34';
+    if(feed) feed.innerHTML = '';
+    if(loading) loading.style.display = 'none';
+    
+    // 3. RECUPERAR SESIÓN
+    // Si no hay modo guardado, forzamos 'r34'
+    let lastMode = localStorage.getItem('sys_last_mode');
+    if (!lastMode || lastMode === 'undefined') lastMode = 'r34';
+    
     const sel = document.getElementById('source-selector');
     if (sel) sel.value = lastMode;
     
+    // 4. ARRANCAR EL MOTOR (ESTO MOSTRARÁ LOS INPUTS)
     cambiarModo(); 
 
-    // --- AUTO-ARRANQUE INTELIGENTE ---
-    if (lastMode === '4chan') {
-        const btn = document.getElementById('btn-chan-main');
-        if (btn) btn.onclick = cargarCatalogo4Chan;
-        setTimeout(cargarCatalogo4Chan, 100);
-    }
-    else if (BOORU_SITES[lastMode]) {
-        setTimeout(() => cargarPaginaBooru(0), 100);
-    }
-    else if (lastMode === 'reddit') {
-        setTimeout(cargarPaginaReddit, 100);
-    }
+    // 5. CARGA AUTOMÁTICA DE CONTENIDO
+    setTimeout(() => {
+        if (lastMode === '4chan') {
+            cargarCatalogo4Chan();
+        }
+        else if (BOORU_SITES[lastMode]) {
+            // Esto carga las imágenes de Rule34 al inicio
+            cargarPaginaBooru(0);
+        }
+        else if (lastMode === 'reddit') {
+            cargarPaginaReddit();
+        }
+    }, 100); // Pequeña pausa para asegurar que el DOM respire
 
-    if(document.getElementById('security-wall').style.display !== 'none') {
-        setTimeout(() => document.getElementById('sys-access-pass').focus(), 100);
+    // 6. INYECTAR OBSERVADOR DE SCROLL INFINITO
+    if (sentinel) {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !cargando && hayMas) {
+                cargarSiguientePagina();
+            }
+        }, {
+            root: null, 
+            rootMargin: '600px', // Detecta 600px antes del final
+            threshold: 0.01
+        });
+        observer.observe(sentinel);
     }
     
-    try { if (!SYS_PASS) console.error("Drivers faltantes"); } catch (e) {}
+    // 7. VERIFICACIÓN DE DRIVERS
+    try { if (typeof SYS_PASS === 'undefined') console.error("Drivers faltantes"); } catch (e) {}
 };
