@@ -26,10 +26,24 @@ let tagSeleccionadoTemp = '';
 let chanCursor = 0;
 let isInThread = false;
 let scrollCatalogPos = 0;
-
 let threadFilterMode = 'all';
 let threadViewMode = 'media';
 let currentBooru = 'r34';
+
+// ==========================================
+// 🔥 (EL VIGILANTE DE VIDEOS) 🔥
+// ==========================================
+const videoObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        // Si el video está al 60% visible, dale play. Si no, pausa.
+        if (entry.isIntersecting) {
+            entry.target.play().catch(() => {}); // El catch evita errores si el navegador bloquea autoplay
+        } else {
+            entry.target.pause();
+        }
+    });
+}, { threshold: 0.6 });
+// ==========================================
 
 // NOTA: BOORU_SITES se carga desde drivers.js
 
