@@ -17,7 +17,6 @@
     <header>
         <h1 id="app-title">UNIVERSAL VIEWER</h1>
         <div style="display:flex; gap:10px;">
-            <button class="btn-icon" onclick="abrirAdminLogin()">🔒</button>
             <button class="btn-icon" onclick="toggleMenu()">⚙️</button>
         </div>
     </header>
@@ -116,35 +115,6 @@
             <button class="modal-btn btn-cancel" onclick="cerrarModal(null)">Cancelar</button>
         </div>
     </div>
-
-    <div id="modal-admin-login" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-            <h3>ACCESO RESTRINGIDO</h3>
-            <input type="password" id="admin-pass-input" placeholder="Contraseña..." onkeydown="if(event.key==='Enter') checkAdminPass()">
-            <div style="display:flex; gap:10px; margin-top:15px; justify-content: center;">
-                <button class="btn-action" onclick="checkAdminPass()">ENTRAR</button>
-                <button class="btn-back" onclick="document.getElementById('modal-admin-login').style.display='none'">CANCELAR</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="panel-admin" style="display:none;">
-        <div class="admin-header">
-            <span>PANEL SYSTEM</span>
-            <button onclick="cerrarAdminPanel()" style="background:none;border:none;color:#fff;cursor:pointer;">✕</button>
-        </div>
-        <div style="padding:15px;">
-            <label class="lbl-title" style="margin-bottom:10px; display:block;">Diagnóstico y Control:</label>
-            <button id="btn-toggle-debug" class="btn-action" style="margin-bottom: 10px;" onclick="toggleDebugMode()">
-                🐞 ACTIVAR DEBUG
-            </button>
-            <button class="btn-action" style="background: #220000; color: #ff5555; border: 1px solid #440000;" onclick="clearDebugLog()">
-                🗑️ LIMPIAR CONSOLA
-            </button>
-        </div>
-    </div>
-
-    <div id="debug-console"></div>
 
     <script src="drivers.js"></script>
     <script src="app.js?v=14"></script>

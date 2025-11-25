@@ -75,34 +75,6 @@ function ocultarPanel() {
     if (b) b.style.display = 'none';
 }
 
-// --- ADMIN SYSTEM ---
-function abrirAdminLogin() {
-    const panel = document.getElementById('panel-admin');
-    if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-        return;
-    }
-    document.getElementById('modal-admin-login').style.display = 'flex';
-    setTimeout(() => { document.getElementById('admin-pass-input').focus(); }, 100);
-}
-
-function checkAdminPass() {
-    const input = document.getElementById('admin-pass-input');
-    if (input.value === SYS_PASS) {
-        document.getElementById('modal-admin-login').style.display = 'none';
-        document.getElementById('panel-admin').style.display = 'block';
-        input.value = '';
-        logDebug("Acceso Admin concedido.");
-    } else {
-        alert("ACCESO DENEGADO");
-        input.value = '';
-    }
-}
-
-function cerrarAdminPanel() {
-    document.getElementById('panel-admin').style.display = 'none';
-}
-
 // --- CAMBIO DE MODOS ---
 function cambiarModo() {
     const val = document.getElementById('source-selector').value;
@@ -284,16 +256,13 @@ async function cargarPaginaBooru(pageNum) {
 
     const site = BOORU_SITES[currentBooru];
     const tags = misTags.join(' ') || document.getElementById('input-tags-real').value.trim();
-    let url = '';
-
-    if (site.adapter === 'ap_v3') {
-        url = `${site.url}${site.endpoint}&page=${pageNum}&search_tag=${encodeURIComponent(tags)}`;
-    } else {
-        url = `${site.url}${site.endpoint}&limit=40&pid=${pageNum}&tags=${encodeURIComponent(tags)}`;
-        if (site.key_needed) {
-            const creds = getKeys();
-            url += `&user_id=${creds.uid}&api_key=${creds.key}`;
-        }
+    
+    // Lógica simplificada solo para Rule34 (Standard)
+    let url = `${site.url}${site.endpoint}&limit=40&pid=${pageNum}&tags=${encodeURIComponent(tags)}`;
+    
+    if (site.key_needed) {
+        const creds = getKeys();
+        url += `&user_id=${creds.uid}&api_key=${creds.key}`;
     }
 
     try {
@@ -929,15 +898,3 @@ window.onload = function() {
     
     try { if (!SYS_PASS) console.error("Drivers faltantes"); } catch (e) {}
 };
-
-function initSecurityCheck() {
-    if (localStorage.getItem('sys_access_token') === 'granted') {
-        document.getElementById('security-wall').style.display = 'none'; return true;
-    } return false;
-}
-function verifyAccess() {
-    if (document.getElementById('sys-access-pass').value === SYS_PASS) {
-        localStorage.setItem('sys_access_token', 'granted');
-        document.getElementById('security-wall').style.display = 'none';
-    } else { document.getElementById('access-error').style.display = 'block'; }
-}
