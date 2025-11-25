@@ -189,6 +189,7 @@ function detectType(url) {
 }
 
 async function fetchSmart(targetUrl) {
+    // 4CHAN LOGIC (Sin cambios, solo logs)
     if (targetUrl.includes('4cdn.org')) {
         for (let proxyUrl of FOURCHAN_PROXIES) {
             try {
@@ -199,29 +200,52 @@ async function fetchSmart(targetUrl) {
                 return JSON.parse(txt);
             } catch (e) { continue; }
         }
+        if(window.debugEnabled) logDebug(`[RED] Fallaron todos los proxies de 4Chan.`);
         throw new Error("Proxies 4Chan fallaron");
     }
+
+    // GENERAL LOGIC (Aquí es donde falla AP)
     for (let i = 0; i < PROXIES.length; i++) {
         const proxy = PROXIES[i];
         let finalUrl = (proxy.type === 'direct') ? targetUrl : proxy.url + encodeURIComponent(targetUrl);
+        
         try {
+            // Solo logueamos si el debug está activo para no ensuciar
+            if (window.debugEnabled && modoActual === 'booru_generic') {
+                logDebug(`[INTENTO ${i+1}] ${proxy.type.toUpperCase()}: ...`);
+            }
+
             const res = await fetch(finalUrl);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const txt = await res.text();
-            if (txt.includes("Whoa there") || txt.includes("Too Many Requests")) throw new Error("Bloqueo");
+            
+            // Filtros de error comunes en proxies gratuitos
+            if (txt.includes("Whoa there") || txt.includes("Too Many Requests")) throw new Error("Rate Limit / Bloqueo");
+            if (txt.trim().startsWith('<') && !txt.includes('<?xml')) throw new Error("HTML devuelto en vez de JSON");
             
             let json;
-            try { json = JSON.parse(txt); } catch (e) { throw new Error("No JSON"); }
+            try { json = JSON.parse(txt); } catch (e) { throw new Error("No es JSON válido"); }
             
+            // Desempaquetado especial para AllOrigins
             if (proxy.type === 'special_unpack') {
                 if (json.contents) {
                     try { return JSON.parse(json.contents); } catch (e) { return json.contents; }
                 }
             }
+            
+            if (window.debugEnabled && modoActual === 'booru_generic') logDebug(`[EXITO] Conexión establecida con Proxy ${i+1}`);
             return json;
-        } catch (e) { continue; }
+
+        } catch (e) {
+            if (window.debugEnabled && modoActual === 'booru_generic') {
+                logDebug(`[FALLO] Proxy ${i+1} (${proxy.type}): ${e.message}`);
+            }
+            continue; // Prueba el siguiente
+        }
     }
-    throw new Error("Red falló.");
+    
+    if(window.debugEnabled) logDebug(`[RED FATAL] Todos los proxies fallaron para: ${targetUrl}`);
+    throw new Error("Red falló: Ningún proxy pudo conectar.");
 }
 
 function ejecutarBusqueda() {
@@ -770,49 +794,65 @@ inp.addEventListener('input', (e) => {
     clearTimeout(timerDebounce);
     timerDebounce = setTimeout(async () => {
         try {
-            // --- BIFURCACIÓN DE LÓGICA ---
-            
-            // 1. ANIME-PICTURES (Modo Blindado con Proxy)
+            // --- DIAGNÓSTICO: Inicio de búsqueda ---
+            if(window.debugEnabled) logDebug(`[BUSCADOR] Buscando: "${val}" en ${currentBooru}`);
+
+            // 1. ANIME-PICTURES (Modo Blindado con Logs)
             if (currentBooru === 'anime_pictures') {
                 const query = val.trim();
-                // Usamos AllOrigins explícitamente porque la API de AP bloquea CORS agresivamente
-                // y fetchSmart a veces falla en negociar eso automáticamente.
+                // AP v3 Tags Endpoint
                 const targetApi = `https://anime-pictures.net/api/v3/tags?lang=en&tag=${encodeURIComponent(query)}&page=0&limit=8`;
+                // Usamos AllOrigins forzado
                 const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetApi)}`;
                 
-                const res = await fetch(proxyUrl);
-                const rawWrapper = await res.json(); // AllOrigins devuelve un JSON wrapper
-                
-                // Desempaquetamos el contenido real (que viene como string dentro de 'contents')
-                if (rawWrapper && rawWrapper.contents) {
-                    const data = JSON.parse(rawWrapper.contents);
+                if(window.debugEnabled) logDebug(`[AP-TAGS] Consultando Proxy...`);
+
+                try {
+                    const res = await fetch(proxyUrl);
+                    const rawWrapper = await res.json(); 
                     
-                    if (data && data.success === true && data.tags) {
-                        mostrarSugerenciasAP(data.tags);
+                    if (rawWrapper && rawWrapper.contents) {
+                        // Intentamos parsear lo que hay dentro
+                        let data;
+                        try {
+                            data = JSON.parse(rawWrapper.contents);
+                        } catch (jsonErr) {
+                            logDebug(`[AP-TAGS] JSON ROTO: ${jsonErr.message}`);
+                            throw jsonErr;
+                        }
+
+                        if (data && data.success === true && data.tags) {
+                            if(window.debugEnabled) logDebug(`[AP-TAGS] Éxito. ${data.tags.length} tags.`);
+                            mostrarSugerenciasAP(data.tags);
+                        } else {
+                            if(window.debugEnabled) logDebug(`[AP-TAGS] Sin resultados.`);
+                            rBox.style.display = 'none';
+                        }
                     } else {
-                        rBox.style.display = 'none';
+                        logDebug(`[AP-TAGS] Proxy vacío.`);
                     }
+                } catch (errAP) {
+                    logDebug(`[AP-TAGS] ERROR: ${errAP.message}`);
                 }
             }
             
-            // 2. RULE34 / BOORUS CLÁSICOS (Fallback)
-            // Si no es AP específico, pero es un booru, usamos lógica R34
+            // 2. RULE34 / BOORUS CLÁSICOS
             else if (modoActual === 'r34' || modoActual === 'booru_generic') {
                 const query = val.trim().replace(/ /g, '_');
                 const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
+                if(window.debugEnabled) logDebug(`[R34-TAGS] Buscando...`);
                 const data = await fetchSmart(url);
                 mostrarSugerenciasR34(data);
             }
             
-            // Otros modos (Reddit/4Chan) no usan este input
             else {
                 rBox.style.display = 'none';
             }
 
         } catch (e) {
-            console.warn("Error en autocompletado:", e);
+            logDebug(`[SISTEMA] Error autocompletado: ${e.message}`);
         }
-    }, 300); // 300ms de espera para no saturar la red
+    }, 300); 
 });
 
 // --- RENDERIZADO RULE34 (Simple) ---
