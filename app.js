@@ -772,28 +772,27 @@ inp.addEventListener('input', (e) => {
         try {
             // --- BIFURCACIÓN DE LÓGICA ---
             
-            // CASO A: RULE34 (Legacy / Booru Genérico)
-            if (modoActual === 'r34' || modoActual === 'booru_generic') {
-                const query = val.trim().replace(/ /g, '_');
-                const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
-                const data = await fetchSmart(url);
-                mostrarSugerenciasR34(data);
-            } 
-            
-            // CASO B: ANIME-PICTURES (Lógica Compleja)
-            else if (modoActual === 'anime_pictures') {
-                // AP usa espacios, no guiones bajos. Y su endpoint devuelve mucha basura que hay que filtrar.
-                const query = val.trim(); 
-                // Usamos el endpoint v3 definido en drivers o hardcodeado aquí por seguridad
+            // 1. ANIME-PICTURES (Prioridad Alta - Verificamos variable específica)
+            if (currentBooru === 'anime_pictures') {
+                const query = val.trim(); // AP usa espacios, NO guiones
                 const url = `https://anime-pictures.net/api/v3/tags?lang=en&tag=${encodeURIComponent(query)}&page=0&limit=8`;
                 
                 const data = await fetchSmart(url);
-                // AP devuelve { success: true, tags: [...] }
+                
                 if (data && data.success === true && data.tags) {
                     mostrarSugerenciasAP(data.tags);
                 } else {
                     rBox.style.display = 'none';
                 }
+            }
+            
+            // 2. RULE34 / BOORUS CLÁSICOS (Fallback)
+            // Si no es AP específico, pero es un booru, usamos lógica R34
+            else if (modoActual === 'r34' || modoActual === 'booru_generic') {
+                const query = val.trim().replace(/ /g, '_');
+                const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
+                const data = await fetchSmart(url);
+                mostrarSugerenciasR34(data);
             }
             
             // Otros modos (Reddit/4Chan) no usan este input
