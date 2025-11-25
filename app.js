@@ -847,8 +847,7 @@ function accionTag(mode) {
 // --- INIT ---
 // --- INIT (VERSIÓN CORREGIDA Y LIMPIA) ---
 window.onload = function() {
-    // 1. INICIALIZACIONES BÁSICAS
-    // initSecurityCheck(); <--- ESTO ERA EL ERROR, LO HE BORRADO
+    // 1. INICIALIZACIONES BÁSICAS 
     initDebugSystem(); 
     initChanAutocomplete();
 
