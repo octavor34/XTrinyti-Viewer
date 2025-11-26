@@ -910,156 +910,80 @@ function accionTag(mode) {
 }
 
 // ==========================================
-// 5. MOTOR E-HENTAI (MODO HÍBRIDO RSS/HTML BLINDADO)
+// 5. MOTOR N-HENTAI (EL SUSTITUTO PRÁCTICO)
 // ==========================================
 
-function buscarEhentai() { ejecutarBusqueda(); }
+// Usamos el mirror .to porque es más amigable con proxies que .net
+const NH_BASE = "https://nhentai.to"; 
 
-// LISTA DE PROXIES (MERCENARIOS)
-const EH_PROXIES = [
-    'https://api.codetabs.com/v1/proxy/?quest=',
-    'https://corsproxy.io/?',
-    'https://api.allorigins.win/raw?url='
-];
+function buscarEhentai() { ejecutarBusqueda(); } 
 
-async function cargarPaginaEhentai(pageNum) {
+// OJO: N-Hentai empieza en página 1. Tu sistema usa 0. Hacemos el ajuste.
+async function cargarPaginaEhentai(pageNum) { 
     if (cargando) return;
     cargando = true;
     
-    // UI de carga
-    const status = document.getElementById('loading-status');
-    const sentinel = document.getElementById('centinela-scroll');
-    if(status) { status.style.display = 'block'; status.innerText = `Conectando a E-Hentai (Pág ${pageNum})...`; }
-    if(sentinel) sentinel.style.display = 'none';
-
-    // ESTRATEGIA:
-    // Pág 0: Intentamos RSS primero (más rápido, menos bloqueo). Si falla, HTML.
-    // Pág > 0: Solo HTML (RSS no tiene paginación).
+    // Ajuste de índice
+    const safePage = pageNum === 0 ? 1 : pageNum;
+    const query = document.getElementById('ehentai-search').value.trim();
     
-    if (pageNum > 0) {
-        await cargarPaginaEhentaiHTML(pageNum);
-        return;
+    // Construimos la URL
+    let targetUrl = '';
+    if (query) {
+        // Búsqueda
+        targetUrl = `${NH_BASE}/search?q=${encodeURIComponent(query)}&page=${safePage}`;
+    } else {
+        // Inicio (Recientes)
+        targetUrl = `${NH_BASE}/?page=${safePage}`;
     }
 
-    // --- INTENTO 1: MODO RSS (SOLO PÁGINA 0) ---
-    const query = document.getElementById('ehentai-search').value.trim();
-    let urlRSS = `https://e-hentai.org/?page=rss`;
-    if (query) urlRSS += `&f_search=${encodeURIComponent(query)}`;
+    // LISTA DE PROXIES ROTATIVOS
+    const proxies = [
+        'https://api.codetabs.com/v1/proxy/?quest=',
+        'https://corsproxy.io/?',
+        'https://api.allorigins.win/raw?url='
+    ];
 
-    let exitoRSS = false;
-
-    for (let proxy of EH_PROXIES) {
-        try {
-            if(window.debugEnabled) logDebug(`[EH-RSS] Probando: ${proxy.split('/')[2]}`);
-            const res = await fetch(proxy + encodeURIComponent(urlRSS));
-            if (!res.ok) continue;
-            
-            const xmlTexto = await res.text();
-            if (xmlTexto.includes('<?xml') || xmlTexto.includes('<rss')) {
-                procesarXML(xmlTexto); // ¡ÉXITO!
-                exitoRSS = true;
-                break;
-            }
-        } catch (e) { }
-    }
-
-    if (!exitoRSS) {
-        if(window.debugEnabled) logDebug("[EH] RSS falló. Activando Protocolo HTML...");
-        await cargarPaginaEhentaiHTML(0); // FALLBACK A HTML
-    }
-}
-
-// --- INTENTO 2: MODO HTML (SCRAPING PURO) ---
-async function cargarPaginaEhentaiHTML(pageNum) {
-    const query = document.getElementById('ehentai-search').value.trim();
-    let urlWeb = `https://e-hentai.org/?page=${pageNum}`;
-    if (query) urlWeb += `&f_search=${encodeURIComponent(query)}`;
-
-    let exitoHTML = false;
+    let exito = false;
     const status = document.getElementById('loading-status');
+    if(status) { status.style.display = 'block'; status.innerText = `Cargando Galerías (Pág ${safePage})...`; }
+    document.getElementById('centinela-scroll').style.display = 'none';
 
-    for (let i = 0; i < EH_PROXIES.length; i++) {
-        const proxy = EH_PROXIES[i];
-        if(window.debugEnabled) logDebug(`[EH-HTML] Intento ${i+1} con ${proxy.split('/')[2]}`);
-
+    for (let proxy of proxies) {
         try {
-            const res = await fetch(proxy + encodeURIComponent(urlWeb));
-            if (!res.ok) throw new Error("Http Error");
+            if(window.debugEnabled) logDebug(`[NH] Probando ruta: ${proxy.split('/')[2]}`);
+            
+            const res = await fetch(proxy + encodeURIComponent(targetUrl));
+            if (!res.ok) continue;
 
             const html = await res.text();
             
-            // Detector de Cloudflare / Bloqueos
-            if (html.length < 500 || html.includes("challenge-platform") || html.includes("Just a moment")) {
-                if(window.debugEnabled) logDebug(`[EH-HTML] Bloqueado por Cloudflare en ruta ${i+1}`);
-                continue;
-            }
+            // Si el HTML es muy corto, es un error del proxy
+            if (html.length < 1000) continue;
 
-            procesarHTML(html, pageNum);
-            exitoHTML = true;
-            break; // ¡Funciona! Salimos del bucle
-        } catch (e) {
-            if(window.debugEnabled) logDebug(`[EH-HTML] Error ruta ${i+1}: ${e.message}`);
-        }
+            procesarHTML_NH(html, safePage);
+            exito = true;
+            break; // ¡Entramos!
+        } catch (e) { }
     }
 
-    // SI TODO FALLA
-    if (!exitoHTML) {
+    if (!exito) {
         cargando = false;
-        if(status) {
-            status.style.display = 'block';
-            status.innerHTML = `<span style="color:red">BLOQUEO TOTAL:</span><br>E-Hentai rechazó todas las conexiones.<br>Intenta en 5 minutos.`;
-        }
-        document.getElementById('centinela-scroll').innerText = "Error de conexión.";
+        if(status) status.innerText = "Error: Bloqueo de Proxies. Intenta más tarde.";
+        document.getElementById('centinela-scroll').innerText = "Reintentar";
     }
 }
 
-// --- PROCESADORES (PARSERS) ---
-
-function procesarXML(xmlTexto) {
-    try {
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlTexto, "text/xml");
-        const items = xml.querySelectorAll('item');
-
-        if (!items || items.length === 0) throw new Error("XML Vacío");
-
-        document.getElementById('loading-status').style.display = 'none';
-        document.getElementById('centinela-scroll').style.display = 'flex';
-
-        items.forEach(item => {
-            const titulo = item.querySelector('title').textContent;
-            const link = item.querySelector('link').textContent;
-            const cat = item.querySelector('category') ? item.querySelector('category').textContent : 'EH';
-            const desc = item.querySelector('description').textContent;
-            const match = desc.match(/src="([^"]+)"/);
-            const thumb = match ? match[1] : '';
-
-            if (thumb) renderCardEhentai(thumb, titulo, cat, link);
-        });
-
-        // Preparamos el scroll para cambiar a modo HTML en la siguiente carga
-        paginaActual = 0;
-        const s = document.getElementById('centinela-scroll');
-        const f = document.getElementById('feed-infinito');
-        if(s && f) {
-            f.appendChild(s);
-            s.innerText = "Cargar más...";
-        }
-        cargando = false;
-
-    } catch (e) {
-        if(window.debugEnabled) logDebug("Error XML Parser: " + e.message);
-        cargando = false;
-    }
-}
-
-function procesarHTML(html, pageNum) {
+function procesarHTML_NH(html, pageNum) {
     try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
-        const filas = doc.querySelectorAll('table.itg tr');
+        
+        // En nhentai.to las galerías son divs con clase .gallery
+        const galerias = doc.querySelectorAll('.gallery');
 
-        if (!filas || filas.length < 2) {
+        if (!galerias || galerias.length === 0) {
+            hayMas = false;
             document.getElementById('centinela-scroll').innerText = "Fin de resultados.";
             cargando = false;
             return;
@@ -1068,27 +992,35 @@ function procesarHTML(html, pageNum) {
         document.getElementById('loading-status').style.display = 'none';
         document.getElementById('centinela-scroll').style.display = 'flex';
 
-        let count = 0;
-        filas.forEach(fila => {
-            const imgC = fila.querySelector('.gl1t img');
-            const infoC = fila.querySelector('.gl3c a');
-            if (imgC && infoC) {
-                let thumb = imgC.dataset.src || imgC.src;
-                const titulo = infoC.textContent;
-                const link = infoC.href;
-                
-                // Categoría
-                const catDiv = fila.querySelector('.cn');
-                const cat = catDiv ? catDiv.textContent : 'EH';
+        galerias.forEach(g => {
+            const linkTag = g.querySelector('a.cover');
+            const imgTag = g.querySelector('img');
+            const caption = g.querySelector('.caption');
 
-                renderCardEhentai(thumb, titulo, cat, link);
-                count++;
+            if (linkTag && imgTag) {
+                // Lazy loading: a veces está en data-src
+                let thumb = imgTag.dataset.src || imgTag.src;
+                // Arreglar URLs relativas
+                if (thumb.startsWith('//')) thumb = 'https:' + thumb;
+                
+                const titulo = caption ? caption.textContent.trim() : 'Gallery';
+                
+                // Arreglar Link relativo
+                let linkReal = linkTag.getAttribute('href');
+                if (linkReal.startsWith('/')) linkReal = NH_BASE + linkReal;
+
+                // Extraer ID para mostrarlo bonito (ej: #177013)
+                const idMatch = linkReal.match(/\/g\/(\d+)/);
+                const idStr = idMatch ? `#${idMatch[1]}` : 'NH';
+
+                renderCardNhentai(thumb, titulo, idStr, linkReal);
             }
         });
 
-        if (count === 0) throw new Error("Sin galerías en el HTML");
-
-        paginaActual = pageNum;
+        // Actualizamos la página actual para el scroll
+        paginaActual = pageNum; // Mantenemos el índice 1-based para la siguiente llamada
+        
+        // Movemos el sensor de scroll al final
         const s = document.getElementById('centinela-scroll');
         const f = document.getElementById('feed-infinito');
         if(s && f) f.appendChild(s);
@@ -1096,26 +1028,28 @@ function procesarHTML(html, pageNum) {
         cargando = false;
 
     } catch (e) {
-        if(window.debugEnabled) logDebug("Error HTML Parser: " + e.message);
-        document.getElementById('loading-status').innerText = "Error leyendo página.";
+        if(window.debugEnabled) logDebug("Parser Falló: " + e.message);
         cargando = false;
     }
 }
 
-function renderCardEhentai(thumb, title, category, linkReal) {
+function renderCardNhentai(thumb, title, badgeTxt, linkReal) {
     const card = document.createElement('div');
     card.className = 'tarjeta';
+    
+    // Al hacer click abrimos la galería real
     const html = `
-    <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')">
-        <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:cover;">
-        <div class="overlay-btn" style="border-radius:4px; font-size:0.8rem; background:#5c0d12;">${category}</div>
+    <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')" style="align-items: flex-start;">
+        <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:cover; height: 100%; width: 100%;">
+        <div class="overlay-btn" style="border-radius:4px; font-size:0.8rem; background:#ed2553; bottom: 10px; right: 10px;">${badgeTxt}</div>
     </div>
     <div class="meta-footer">
-        <div class="badge" style="background:#5c0d12">EH</div>
+        <div class="badge" style="background:#ed2553">NH</div>
         <div class="meta-desc-preview" onclick="window.open('${linkReal}', '_blank')">
-            ${title} <span class="ver-mas">↗ Abrir</span>
+            ${title} <span class="ver-mas">↗ Leer</span>
         </div>
     </div>`;
+    
     card.innerHTML = html;
     document.getElementById('feed-infinito').appendChild(card);
 }
