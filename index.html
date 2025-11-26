@@ -25,7 +25,8 @@
         <label class="lbl-title">Plataforma:</label>
         <select id="source-selector" onchange="cambiarModo()">
             <option value="r34">🟦 Rule34</option>
-            <option value="ehentai">🐼 E-Hentai</option>
+            <option value="ehentai">N-Hentai</option>
+            <option value="cosplay">👙 Hentai Cosplays</option>
             <option value="4chan">🍀 4Chan</option>
             <option value="reddit">🟧 Reddit</option>
             <option value="x">🖤 X (Twitter)</option>
@@ -90,8 +91,13 @@
         </div>
 
         <div id="ehentai-inputs" class="input-group">
-            <input type="text" id="ehentai-search" placeholder="Ej: big breasts, milf...">
+            <input type="text" id="nhentai-search" placeholder="Ej: big breasts, milf...">
             <button class="btn-action" style="background:#5c0d12;" onclick="buscarEhentai()">BUSCAR GALERÍAS</button>
+        </div>
+
+        <div id="cosplay-inputs" class="input-group">
+            <input type="text" id="cosplay-search" placeholder="Ej: ahri, 2b, tifa...">
+            <button class="btn-action" style="background:#d63384;" onclick="buscarCosplay()">BUSCAR COSPLAY</button>
         </div>
         
         </div>
