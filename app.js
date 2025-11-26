@@ -236,9 +236,25 @@ async function fetchSmart(targetUrl) {
 function ejecutarBusqueda() {
     ocultarPanel();
     document.getElementById('nav-chan').style.display = 'none';
-    document.getElementById('feed-infinito').innerHTML = '';
-    document.getElementById('loading-status').style.display = 'block';
-    document.getElementById('centinela-scroll').style.display = 'none';
+    
+    // --- OPERACIÓN RESCATE (CRÍTICO) ---
+    // Antes de borrar el feed, sacamos al centinela si está adentro.
+    // Si no hacemos esto, el innerHTML='' lo mata y da error null.
+    const feed = document.getElementById('feed-infinito');
+    const s = document.getElementById('centinela-scroll');
+    
+    if (s && feed && s.parentNode === feed) {
+        feed.removeChild(s);
+        document.body.appendChild(s); // Lo guardamos en el body
+    }
+    // -----------------------------------
+
+    if(feed) feed.innerHTML = '';
+    
+    const loading = document.getElementById('loading-status');
+    if(loading) loading.style.display = 'block';
+    
+    if(s) s.style.display = 'none';
     
     paginaActual = 0; redditAfter = ''; hayMas = true; cargando = false;
 
