@@ -1168,6 +1168,86 @@ async function cargarPaginaCosplay(pageNum) {
         if(status) status.innerHTML = `<span style="color:red">ERROR DE RED</span><br>HentaiCosplays no responde a los proxies.`;
         if(sentinel) sentinel.innerText = "Reintentar";
     }
+
+    function procesarHTML_Cosplay(html, pageNum) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            
+            // Estructura del sitio: <div id="content"> <div class="post"> ...
+            const posts = doc.querySelectorAll('#content .post');
+    
+            if (!posts || posts.length === 0) {
+                hayMas = false;
+                document.getElementById('centinela-scroll').innerText = "Fin de resultados.";
+                cargando = false;
+                return;
+            }
+    
+            document.getElementById('loading-status').style.display = 'none';
+            const sentinel = document.getElementById('centinela-scroll');
+            if(sentinel) sentinel.style.display = 'flex';
+    
+            posts.forEach(p => {
+                const linkTag = p.querySelector('a');
+                const imgTag = p.querySelector('img');
+                // El título suele estar en el atributo title del link o img
+                const title = linkTag.getAttribute('title') || imgTag.getAttribute('alt') || "Cosplay Set";
+    
+                if (linkTag && imgTag) {
+                    let rawThumb = imgTag.src;
+                    // Arreglo de URL relativa si es necesario
+                    if (rawThumb.startsWith('/')) rawThumb = COSPLAY_BASE + rawThumb;
+                    
+                    // 🔥 LAVADO DE IMAGEN CON WSRV (Más rápido y seguro)
+                    const thumb = `https://wsrv.nl/?url=${encodeURIComponent(rawThumb)}&output=jpg&w=400`;
+    
+                    let linkReal = linkTag.getAttribute('href');
+                    if (linkReal.startsWith('/')) linkReal = COSPLAY_BASE + linkReal;
+    
+                    // Extraer nombre del modelo para el badge
+                    let badgeTxt = 'COSPLAY';
+                    const parts = linkReal.split('/');
+                    if(parts.length > 4) badgeTxt = parts[4].replace(/-/g, ' ').toUpperCase().substring(0, 10);
+    
+                    renderCardCosplay(thumb, title, badgeTxt, linkReal);
+                }
+            });
+    
+            paginaActual = pageNum;
+            const s = document.getElementById('centinela-scroll');
+            const f = document.getElementById('feed-infinito');
+            if(s && f) {
+                f.appendChild(s);
+                s.innerText = "...";
+            }
+    
+        } catch (e) {
+            if(window.debugEnabled) logDebug("Parser Cosplay Error: " + e.message);
+        } finally {
+            cargando = false;
+        }
+    }
+    
+    function renderCardCosplay(thumb, title, badgeTxt, linkReal) {
+        const card = document.createElement('div');
+        card.className = 'tarjeta';
+        
+        const html = `
+        <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')" style="min-height: 250px; align-items: flex-start;">
+            <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:cover; height: 100%; width: 100%;">
+            <div class="overlay-btn" style="border-radius:4px; font-size:0.7rem; background:#d63384; bottom: 10px; right: 10px; max-width:100px; white-space:nowrap; overflow:hidden;">${badgeTxt}</div>
+        </div>
+        <div class="meta-footer">
+            <div class="badge" style="background:#d63384">HC</div>
+            <div class="meta-desc-preview" onclick="window.open('${linkReal}', '_blank')">
+                ${title} <span class="ver-mas">↗ Ver Set</span>
+            </div>
+        </div>`;
+        
+        card.innerHTML = html;
+        document.getElementById('feed-infinito').appendChild(card);
+    }
 }
 
 // --- INIT ---
