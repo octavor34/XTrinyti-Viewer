@@ -274,7 +274,7 @@ function ejecutarBusqueda() {
     else if (modoActual === 'chan_catalog') cargarCatalogo4Chan();
     else if (modoActual === 'reddit') cargarPaginaReddit();
     else if (modoActual === 'x') cargarX();
-    else if (modoActual === 'ehentai') cargarPaginaEhentai(0);
+    else if (modoActual === 'nhentai') cargarPaginaEhentai(0);
     else if (modoActual === 'cosplay') cargarPaginaCosplay(1); // <--- NUEVA LÍNEA (Empieza en pág 1)
 }
 
