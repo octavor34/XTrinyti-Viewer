@@ -36,17 +36,11 @@ let currentBooru = 'r34';
 // ==========================================
 const videoObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-        // Lógica Práctica:
-        // 1. Si el video sale de la pantalla (!isIntersecting), lo PAUSAMOS para no quemar tu CPU.
-        // 2. Si el video entra, NO hacemos nada. Esperamos a que tú le des click.
         if (!entry.isIntersecting) {
             entry.target.pause();
         }
     });
-}, { threshold: 0.1 }); // Se activa apenas el 10% del video sale/entra
-// ==========================================
-
-// NOTA: BOORU_SITES se carga desde drivers.js
+}, { threshold: 0.1 });
 
 // ==========================================
 // 2. INTERFAZ DE USUARIO (UI)
@@ -81,15 +75,13 @@ function cambiarModo() {
     localStorage.setItem('sys_last_mode', val);
 
     const feed = document.getElementById('feed-infinito');
-    const sentinel = document.getElementById('centinela-scroll'); // El sensor
+    const sentinel = document.getElementById('centinela-scroll'); 
 
     // --- CORRECCIÓN: RESCATAR AL SENSOR ANTES DE BORRAR ---
-    // Si el sensor está dentro del feed, lo sacamos al body para salvarlo
     if (sentinel && sentinel.parentNode === feed) {
         feed.removeChild(sentinel);
         document.body.appendChild(sentinel);
     }
-    // -----------------------------------------------------
 
     feed.innerHTML = '';
     if (sentinel) sentinel.style.display = 'none';
@@ -99,8 +91,6 @@ function cambiarModo() {
     if (BOORU_SITES[val]) {
         modoActual = 'booru_generic';
         currentBooru = val;
-
-        // Asignamos color según el sitio (puedes añadir más si quieres)
         color = val === 'r34' ? '#3b82f6' : '#ea580c'; 
 
         document.getElementById('r34-inputs').style.display = 'block';
@@ -128,18 +118,6 @@ function cambiarModo() {
             document.getElementById('x-inputs').style.display = 'block';
             document.documentElement.style.setProperty('--accent', '#ffffff');
             document.getElementById('app-title').innerText = "X (TWITTER)";
-        } else if (val === 'ehentai') {
-            modoActual = 'ehentai';
-            document.getElementById('ehentai-inputs').style.display = 'block';
-            document.documentElement.style.setProperty('--accent', '#5c0d12'); // Color Rojo Oscuro
-            document.getElementById('app-title').innerText = "E-HENTAI GALLERIES";
-            feed.classList.add('tiktok-mode');
-        } else if (val === 'cosplay') {
-            modoActual = 'cosplay';
-            document.getElementById('cosplay-inputs').style.display = 'block';
-            document.documentElement.style.setProperty('--accent', '#d63384'); // Color Rosa
-            document.getElementById('app-title').innerText = "HENTAI COSPLAYS";
-            feed.classList.add('tiktok-mode');
         }
     }
 
@@ -186,7 +164,7 @@ function detectType(url) {
 }
 
 async function fetchSmart(targetUrl) {
-    // 4CHAN LOGIC (Sin cambios, solo logs)
+    // 4CHAN LOGIC
     if (targetUrl.includes('4cdn.org')) {
         for (let proxyUrl of FOURCHAN_PROXIES) {
             try {
@@ -201,13 +179,12 @@ async function fetchSmart(targetUrl) {
         throw new Error("Proxies 4Chan fallaron");
     }
 
-    // GENERAL LOGIC (Aquí es donde falla AP)
+    // GENERAL LOGIC
     for (let i = 0; i < PROXIES.length; i++) {
         const proxy = PROXIES[i];
         let finalUrl = (proxy.type === 'direct') ? targetUrl : proxy.url + encodeURIComponent(targetUrl);
         
         try {
-            // Solo logueamos si el debug está activo para no ensuciar
             if (window.debugEnabled && modoActual === 'booru_generic') {
                 logDebug(`[INTENTO ${i+1}] ${proxy.type.toUpperCase()}: ...`);
             }
@@ -216,14 +193,12 @@ async function fetchSmart(targetUrl) {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const txt = await res.text();
             
-            // Filtros de error comunes en proxies gratuitos
             if (txt.includes("Whoa there") || txt.includes("Too Many Requests")) throw new Error("Rate Limit / Bloqueo");
             if (txt.trim().startsWith('<') && !txt.includes('<?xml')) throw new Error("HTML devuelto en vez de JSON");
             
             let json;
             try { json = JSON.parse(txt); } catch (e) { throw new Error("No es JSON válido"); }
             
-            // Desempaquetado especial para AllOrigins
             if (proxy.type === 'special_unpack') {
                 if (json.contents) {
                     try { return JSON.parse(json.contents); } catch (e) { return json.contents; }
@@ -237,7 +212,7 @@ async function fetchSmart(targetUrl) {
             if (window.debugEnabled && modoActual === 'booru_generic') {
                 logDebug(`[FALLO] Proxy ${i+1} (${proxy.type}): ${e.message}`);
             }
-            continue; // Prueba el siguiente
+            continue; 
         }
     }
     
@@ -249,17 +224,14 @@ function ejecutarBusqueda() {
     ocultarPanel();
     document.getElementById('nav-chan').style.display = 'none';
     
-    // --- OPERACIÓN RESCATE (CRÍTICO) ---
-    // Antes de borrar el feed, sacamos al centinela si está adentro.
-    // Si no hacemos esto, el innerHTML='' lo mata y da error null.
+    // --- OPERACIÓN RESCATE ---
     const feed = document.getElementById('feed-infinito');
     const s = document.getElementById('centinela-scroll');
     
     if (s && feed && s.parentNode === feed) {
         feed.removeChild(s);
-        document.body.appendChild(s); // Lo guardamos en el body
+        document.body.appendChild(s); 
     }
-    // -----------------------------------
 
     if(feed) feed.innerHTML = '';
     
@@ -274,16 +246,12 @@ function ejecutarBusqueda() {
     else if (modoActual === 'chan_catalog') cargarCatalogo4Chan();
     else if (modoActual === 'reddit') cargarPaginaReddit();
     else if (modoActual === 'x') cargarX();
-    else if (modoActual === 'ehentai') cargarPaginaEhentai(0);
-    else if (modoActual === 'cosplay') cargarPaginaCosplay(1); // <--- NUEVA LÍNEA (Empieza en pág 1)
 }
 
 function cargarSiguientePagina() {
     document.getElementById('centinela-scroll').innerText = "Cargando...";
     if (modoActual === 'booru_generic' || modoActual === 'r34') cargarPaginaBooru(paginaActual + 1);
     if (modoActual === 'reddit') cargarPaginaReddit();
-    if (modoActual === 'ehentai') cargarPaginaEhentai(paginaActual + 1);
-    if (modoActual === 'cosplay') cargarPaginaCosplay(paginaActual + 1); // <--- NUEVA LÍNEA
 }
 
 // ==========================================
@@ -299,7 +267,6 @@ async function cargarPaginaBooru(pageNum) {
     const site = BOORU_SITES[currentBooru];
     const tags = misTags.join(' ') || document.getElementById('input-tags-real').value.trim();
     
-    // Lógica simplificada solo para Rule34 (Standard)
     let url = `${site.url}${site.endpoint}&limit=40&pid=${pageNum}&tags=${encodeURIComponent(tags)}`;
     
     if (site.key_needed) {
@@ -309,8 +276,7 @@ async function cargarPaginaBooru(pageNum) {
 
     try {
         const rawData = await fetchSmart(url);
-        let postsLimpios = [];
-            postsLimpios = rawData;
+        let postsLimpios = rawData;
 
         document.getElementById('loading-status').style.display = 'none';
         document.getElementById('centinela-scroll').style.display = 'flex';
@@ -326,15 +292,13 @@ async function cargarPaginaBooru(pageNum) {
         });
         paginaActual = pageNum;
         
-        // --- CORRECCIÓN: MOVER SENSOR ADENTRO ---
         const s = document.getElementById('centinela-scroll');
         const f = document.getElementById('feed-infinito');
         if(s && f) {
-            f.appendChild(s); // Lo movemos al final de las fotos
+            f.appendChild(s);
             s.style.display = 'flex';
             s.innerText = "...";
         }
-        // ----------------------------------------
 
     } catch (e) { 
         document.getElementById('loading-status').innerText = `Error ${currentBooru}: ${e.message}`;
@@ -791,12 +755,11 @@ function stepZoom() {
 
 const inp = document.getElementById('input-tags-real');
 const rBox = document.getElementById('sugerencias-box');
-let tagCache = {}; // <--- MEMORIA RAM PARA TUS TAGS
+let tagCache = {}; 
 
 inp.addEventListener('input', (e) => {
     const val = inp.value;
     
-    // 1. Limpieza rápida
     if (val.trim().length < 2) { 
         rBox.style.display = 'none'; 
         return; 
@@ -804,17 +767,13 @@ inp.addEventListener('input', (e) => {
 
     const query = val.trim().replace(/ /g, '_');
 
-    // 2. ¿YA LO TENEMOS? (VELOCIDAD DE LA LUZ)
-    // Si ya buscaste esto antes, muéstralo YA y no esperes nada.
     if (tagCache[query]) {
         mostrarSugerenciasR34(tagCache[query]);
         return; 
     }
 
-    // 3. SI ES NUEVO, BUSCAMOS (PERO RÁPIDO)
     clearTimeout(timerDebounce);
     
-    // Bajamos de 300ms a 100ms. Se sentirá mucho más "snappy".
     timerDebounce = setTimeout(async () => {
         try {
             if(window.debugEnabled) logDebug(`[BUSCADOR] Fetching: "${query}"`);
@@ -822,7 +781,6 @@ inp.addEventListener('input', (e) => {
             const url = `https://api.rule34.xxx/autocomplete.php?q=${encodeURIComponent(query)}`;
             const data = await fetchSmart(url);
             
-            // GUARDAMOS EN MEMORIA PARA LA PRÓXIMA
             if (data && Array.isArray(data) && data.length > 0) {
                 tagCache[query] = data;
             }
@@ -832,7 +790,7 @@ inp.addEventListener('input', (e) => {
         } catch (e) {
             logDebug(`[ERROR] ${e.message}`);
         }
-    }, 150); // <--- 150ms es el punto dulce entre velocidad y no saturar la red
+    }, 150);
 });
 
 // --- RENDERIZADO RULE34 (Simple) ---
@@ -853,7 +811,6 @@ function crearElementoSugerencia(valorReal, textoMostrar, origen) {
     const d = document.createElement('div');
     d.className = 'sugerencia-item';
     
-    // Estética: separar el nombre del contador si existe paréntesis
     let html = `<span>${valorReal}</span>`;
     if (textoMostrar.includes('(')) {
         const parts = textoMostrar.split('(');
@@ -863,7 +820,6 @@ function crearElementoSugerencia(valorReal, textoMostrar, origen) {
     d.innerHTML = html;
     
     d.onclick = () => {
-       // Siempre forzamos guiones bajos porque ya no usamos AP
         const tagFinal = valorReal.replace(/ /g, '_');
         
         agregarTag(tagFinal);
@@ -875,15 +831,11 @@ function crearElementoSugerencia(valorReal, textoMostrar, origen) {
     rBox.appendChild(d);
 }
 
-// Eventos de teclado (Enter y Backspace) se mantienen igual
-// Manejo del ENTER y BACKSPACE (Versión Limpia)
 inp.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { 
         e.preventDefault(); 
         const t = inp.value.trim(); 
         if(t) { 
-            // Como ya no usamos AP, siempre reemplazamos espacios por guiones bajos
-            // para que Rule34 y otros boorus lo entiendan.
             const tagFinal = t.replace(/ /g, '_');
             
             agregarTag(tagFinal); 
@@ -891,7 +843,6 @@ inp.addEventListener('keydown', (e) => {
             rBox.style.display = 'none'; 
         } 
     }
-    // Esto permite borrar el último tag (chip) si borras con la caja vacía
     if (e.key === 'Backspace' && !inp.value) { misTags.pop(); renderChips(); }
 });
 
@@ -917,346 +868,11 @@ function accionTag(mode) {
     cerrarModal(null); setTimeout(() => { cargando = false; buscarR34(); }, 50);
 }
 
-// ==========================================
-// 5. MOTOR N-HENTAI (VERSIÓN TURBO CON TIMEOUT)
-// ==========================================
-
-const NH_BASE = "https://nhentai.to"; 
-
-function buscarEhentai() { ejecutarBusqueda(); } 
-
-async function cargarPaginaEhentai(pageNum) { 
-    if (cargando) return;
-    cargando = true;
-    
-    const safePage = pageNum === 0 ? 1 : pageNum;
-    const query = document.getElementById('ehentai-search').value.trim();
-    
-    // UI
-    const status = document.getElementById('loading-status');
-    const sentinel = document.getElementById('centinela-scroll');
-    if(status) { 
-        status.style.display = 'block'; 
-        status.innerText = `Conectando N-Hentai (Pág ${safePage})...`; 
-    }
-    if(sentinel) sentinel.style.display = 'none';
-
-    // URL TARGET
-    let targetUrl = query 
-        ? `${NH_BASE}/search?q=${encodeURIComponent(query)}&page=${safePage}`
-        : `${NH_BASE}/?page=${safePage}`;
-
-    // LISTA DE PROXIES OPTIMIZADA (El orden importa)
-    // 1. AllOrigins JSON: Suele saltar mejor los bloqueos de "raw"
-    // 2. CorsProxy: Rápido pero a veces estricto
-    // 3. CodeTabs: El más lento, lo dejamos al final
-    const proxies = [
-        { url: 'https://api.allorigins.win/get?url=', type: 'json_wrapper' },
-        { url: 'https://corsproxy.io/?', type: 'direct' },
-        { url: 'https://api.codetabs.com/v1/proxy/?quest=', type: 'direct' }
-    ];
-
-    let exito = false;
-
-    for (let p of proxies) {
-        // Log para que veas qué pasa
-        if(status) status.innerText = `Probando vía ${p.url.split('/')[2]}...`;
-        if(window.debugEnabled) logDebug(`[NH] Intentando: ${p.url.split('/')[2]}`);
-
-        try {
-            // --- TRUCO DEL TIMEOUT ---
-            // Si el proxy no responde en 8 segundos, lo cancelamos.
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-            const finalUrl = p.url + encodeURIComponent(targetUrl);
-            const res = await fetch(finalUrl, { signal: controller.signal });
-            clearTimeout(timeoutId); // Si respondió, cancelamos el timer
-
-            if (!res.ok) throw new Error("Http Error");
-
-            let html = '';
-
-            // Manejo especial para AllOrigins (devuelve JSON con el HTML dentro)
-            if (p.type === 'json_wrapper') {
-                const data = await res.json();
-                if (!data.contents) throw new Error("JSON vacío");
-                html = data.contents;
-            } else {
-                html = await res.text();
-            }
-
-            // Validar que bajamos algo útil
-            if (html.length < 500 || html.includes("502 Bad Gateway")) {
-                throw new Error("HTML inválido o error de gateway");
-            }
-
-            // Si llegamos aquí, ¡TENEMOS LA PÁGINA!
-            procesarHTML_NH(html, safePage);
-            exito = true;
-            break; // Salimos del bucle
-
-        } catch (e) {
-            if(window.debugEnabled) logDebug(`[NH] Falló ${p.url.split('/')[2]}: ${e.message}`);
-            continue; // Vamos al siguiente proxy
-        }
-    }
-
-    if (!exito) {
-        cargando = false;
-        if(status) {
-            status.innerHTML = `<span style="color:#ff5555">FALLO DE RED</span><br>Los proxies no pueden acceder a N-Hentai ahora.<br>Intenta buscar otra cosa o espera un rato.`;
-        }
-        if(sentinel) sentinel.innerText = "Reintentar";
-    }
-}
-
-function procesarHTML_NH(html, pageNum) {
-    try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        
-        const galerias = doc.querySelectorAll('.gallery');
-
-        if (!galerias || galerias.length === 0) {
-            hayMas = false;
-            document.getElementById('centinela-scroll').innerText = "Fin de resultados.";
-            cargando = false;
-            return;
-        }
-
-        document.getElementById('loading-status').style.display = 'none';
-        const sentinel = document.getElementById('centinela-scroll');
-        if(sentinel) sentinel.style.display = 'flex';
-
-        galerias.forEach(g => {
-            const linkTag = g.querySelector('a.cover');
-            const imgTag = g.querySelector('img');
-            const caption = g.querySelector('.caption');
-
-            if (linkTag && imgTag) {
-                // 1. OBTENER URL SUCIA
-                let rawThumb = imgTag.dataset.src || imgTag.src;
-                if (rawThumb.startsWith('//')) rawThumb = 'https:' + rawThumb;
-
-                // 2. 🔥 LAVADO DE IMAGEN: MÉTODO WORDPRESS CDN 🔥
-                // Quitamos el https:// y usamos i0.wp.com. Es la mejor lavadora del mercado.
-                const cleanUrl = rawThumb.replace(/^https?:\/\//, '');
-                const thumb = `https://i0.wp.com/${cleanUrl}`;
-                
-                const titulo = caption ? caption.textContent.trim() : 'Gallery';
-                
-                // Arreglar Link relativo
-                let linkReal = linkTag.getAttribute('href');
-                if (linkReal.startsWith('/')) linkReal = NH_BASE + linkReal;
-
-                // Extraer ID
-                const idMatch = linkReal.match(/\/g\/(\d+)/);
-                const idStr = idMatch ? `#${idMatch[1]}` : 'NH';
-
-                renderCardNhentai(thumb, titulo, idStr, linkReal);
-            }
-        });
-
-        paginaActual = pageNum;
-        
-        const f = document.getElementById('feed-infinito');
-        if(sentinel && f) {
-            f.appendChild(sentinel);
-            sentinel.innerText = "...";
-        }
-        
-    } catch (e) {
-        if(window.debugEnabled) logDebug("Parser Error: " + e.message);
-    } finally {
-        cargando = false;
-    }
-}
-
-function renderCardNhentai(thumb, title, badgeTxt, linkReal) {
-    const card = document.createElement('div');
-    card.className = 'tarjeta';
-    
-    // NOTA IMPORTANTE: linkReal es https://nhentai.to/g/12345
-    // NO le pongas proxies aquí. Ábrelo directo.
-    const html = `
-    <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')" style="min-height: 250px; align-items: flex-start;">
-        <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:cover; height: 100%; width: 100%;">
-        <div class="overlay-btn" style="border-radius:4px; font-size:0.8rem; background:#ed2553; bottom: 10px; right: 10px;">${badgeTxt}</div>
-    </div>
-    <div class="meta-footer">
-        <div class="badge" style="background:#ed2553">NH</div>
-        <div class="meta-desc-preview" onclick="window.open('${linkReal}', '_blank')">
-            ${title} <span class="ver-mas">↗ Leer</span>
-        </div>
-    </div>`;
-    
-    card.innerHTML = html;
-    document.getElementById('feed-infinito').appendChild(card);
-}
-
-// ==========================================
-// 6. MOTOR HENTAI COSPLAYS (VERSIÓN BLINDADA)
-// ==========================================
-
-const COSPLAY_BASE = "https://hentai-cosplays.com";
-
-function buscarCosplay() { ejecutarBusqueda(); }
-
-async function cargarPaginaCosplay(pageNum) {
-    if (cargando) return;
-    cargando = true;
-
-    const safePage = pageNum === 0 ? 1 : pageNum;
-    const query = document.getElementById('cosplay-search').value.trim();
-    
-    // UI
-    const status = document.getElementById('loading-status');
-    const sentinel = document.getElementById('centinela-scroll');
-    if(status) { status.style.display = 'block'; status.innerText = `Cargando Cosplays (Pág ${safePage})...`; }
-    if(sentinel) sentinel.style.display = 'none';
-
-    // URL
-    let targetUrl = query 
-        ? `${COSPLAY_BASE}/search/${encodeURIComponent(query)}/page/${safePage}/` 
-        : `${COSPLAY_BASE}/page/${safePage}/`;
-
-    // PROXIES: Cambiamos el orden y añadimos un fallback manual
-    const proxies = [
-        { url: 'https://api.allorigins.win/get?url=', type: 'json_wrapper' },
-        { url: 'https://api.codetabs.com/v1/proxy/?quest=', type: 'direct' },
-        { url: 'https://corsproxy.io/?', type: 'direct' }
-    ];
-
-    let exito = false;
-
-    for (let p of proxies) {
-        if(window.debugEnabled) logDebug(`[COSPLAY] Probando: ${p.url.split('/')[2]}`);
-        if(status) status.innerText = `Conectando vía ${p.url.split('/')[2]}...`;
-
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-            const res = await fetch(p.url + encodeURIComponent(targetUrl), { signal: controller.signal });
-            clearTimeout(timeoutId);
-
-            if (!res.ok) continue;
-
-            let html = '';
-            if (p.type === 'json_wrapper') {
-                const data = await res.json();
-                if (!data.contents) throw new Error("Vacio");
-                html = data.contents;
-            } else {
-                html = await res.text();
-            }
-
-            // Validación de contenido real
-            if (!html || html.length < 500) continue;
-
-            procesarHTML_Cosplay(html, safePage);
-            exito = true;
-            break; 
-        } catch (e) { 
-            if(window.debugEnabled) logDebug(`[COSPLAY] Falló: ${e.message}`);
-        }
-    }
-
-    if (!exito) {
-        cargando = false;
-        if(status) status.innerHTML = `<span style="color:red">ERROR DE RED</span><br>HentaiCosplays no responde a los proxies.`;
-        if(sentinel) sentinel.innerText = "Reintentar";
-    }
-
-    function procesarHTML_Cosplay(html, pageNum) {
-        try {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
-            
-            // Estructura del sitio: <div id="content"> <div class="post"> ...
-            const posts = doc.querySelectorAll('#content .post');
-    
-            if (!posts || posts.length === 0) {
-                hayMas = false;
-                document.getElementById('centinela-scroll').innerText = "Fin de resultados.";
-                cargando = false;
-                return;
-            }
-    
-            document.getElementById('loading-status').style.display = 'none';
-            const sentinel = document.getElementById('centinela-scroll');
-            if(sentinel) sentinel.style.display = 'flex';
-    
-            posts.forEach(p => {
-                const linkTag = p.querySelector('a');
-                const imgTag = p.querySelector('img');
-                // El título suele estar en el atributo title del link o img
-                const title = linkTag.getAttribute('title') || imgTag.getAttribute('alt') || "Cosplay Set";
-    
-                if (linkTag && imgTag) {
-                    let rawThumb = imgTag.src;
-                    // Arreglo de URL relativa si es necesario
-                    if (rawThumb.startsWith('/')) rawThumb = COSPLAY_BASE + rawThumb;
-                    
-                    // 🔥 LAVADO DE IMAGEN CON WSRV (Más rápido y seguro)
-                    const thumb = `https://wsrv.nl/?url=${encodeURIComponent(rawThumb)}&output=jpg&w=400`;
-    
-                    let linkReal = linkTag.getAttribute('href');
-                    if (linkReal.startsWith('/')) linkReal = COSPLAY_BASE + linkReal;
-    
-                    // Extraer nombre del modelo para el badge
-                    let badgeTxt = 'COSPLAY';
-                    const parts = linkReal.split('/');
-                    if(parts.length > 4) badgeTxt = parts[4].replace(/-/g, ' ').toUpperCase().substring(0, 10);
-    
-                    renderCardCosplay(thumb, title, badgeTxt, linkReal);
-                }
-            });
-    
-            paginaActual = pageNum;
-            const s = document.getElementById('centinela-scroll');
-            const f = document.getElementById('feed-infinito');
-            if(s && f) {
-                f.appendChild(s);
-                s.innerText = "...";
-            }
-    
-        } catch (e) {
-            if(window.debugEnabled) logDebug("Parser Cosplay Error: " + e.message);
-        } finally {
-            cargando = false;
-        }
-    }
-    
-    function renderCardCosplay(thumb, title, badgeTxt, linkReal) {
-        const card = document.createElement('div');
-        card.className = 'tarjeta';
-        
-        const html = `
-        <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')" style="min-height: 250px; align-items: flex-start;">
-            <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:cover; height: 100%; width: 100%;">
-            <div class="overlay-btn" style="border-radius:4px; font-size:0.7rem; background:#d63384; bottom: 10px; right: 10px; max-width:100px; white-space:nowrap; overflow:hidden;">${badgeTxt}</div>
-        </div>
-        <div class="meta-footer">
-            <div class="badge" style="background:#d63384">HC</div>
-            <div class="meta-desc-preview" onclick="window.open('${linkReal}', '_blank')">
-                ${title} <span class="ver-mas">↗ Ver Set</span>
-            </div>
-        </div>`;
-        
-        card.innerHTML = html;
-        document.getElementById('feed-infinito').appendChild(card);
-    }
-}
-
 // --- INIT ---
 window.onload = function() {
-    // 1. INICIALIZACIONES BÁSICAS 
     initDebugSystem(); 
     initChanAutocomplete();
 
-    // 2. LIMPIEZA DE UI
     const feed = document.getElementById('feed-infinito');
     const loading = document.getElementById('loading-status');
     const sentinel = document.getElementById('centinela-scroll');
@@ -1264,32 +880,26 @@ window.onload = function() {
     if(feed) feed.innerHTML = '';
     if(loading) loading.style.display = 'none';
     
-    // 3. RECUPERAR SESIÓN
-    // Si no hay modo guardado, forzamos 'r34'
     let lastMode = localStorage.getItem('sys_last_mode');
     if (!lastMode || lastMode === 'undefined') lastMode = 'r34';
     
     const sel = document.getElementById('source-selector');
     if (sel) sel.value = lastMode;
     
-    // 4. ARRANCAR EL MOTOR (ESTO MOSTRARÁ LOS INPUTS)
     cambiarModo(); 
 
-    // 5. CARGA AUTOMÁTICA DE CONTENIDO
     setTimeout(() => {
         if (lastMode === '4chan') {
             cargarCatalogo4Chan();
         }
         else if (BOORU_SITES[lastMode]) {
-            // Esto carga las imágenes de Rule34 al inicio
             cargarPaginaBooru(0);
         }
         else if (lastMode === 'reddit') {
             cargarPaginaReddit();
         }
-    }, 100); // Pequeña pausa para asegurar que el DOM respire
+    }, 100); 
 
-    // 6. INYECTAR OBSERVADOR DE SCROLL INFINITO
     if (sentinel) {
         const observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting && !cargando && hayMas) {
@@ -1297,12 +907,11 @@ window.onload = function() {
             }
         }, {
             root: null, 
-            rootMargin: '600px', // Detecta 600px antes del final
+            rootMargin: '600px', 
             threshold: 0.01
         });
         observer.observe(sentinel);
     }
     
-    // 7. VERIFICACIÓN DE DRIVERS
     try { if (typeof SYS_PASS === 'undefined') console.error("Drivers faltantes"); } catch (e) {}
 };
