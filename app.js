@@ -1016,7 +1016,6 @@ function procesarHTML_NH(html, pageNum) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
         
-        // Selector específico para nhentai.to
         const galerias = doc.querySelectorAll('.gallery');
 
         if (!galerias || galerias.length === 0) {
@@ -1040,10 +1039,10 @@ function procesarHTML_NH(html, pageNum) {
                 let rawThumb = imgTag.dataset.src || imgTag.src;
                 if (rawThumb.startsWith('//')) rawThumb = 'https:' + rawThumb;
 
-                // 2. LAVAR LA IMAGEN (ESTO ARREGLA LA IMAGEN ROTA)
-                // Usamos wsrv.nl para hacer de intermediario y saltar la protección de Cloudflare
-                // &output=jpg asegura que sea un formato ligero
-                const thumb = `https://wsrv.nl/?url=${encodeURIComponent(rawThumb)}&output=jpg`;
+                // 2. 🔥 LAVADO DE IMAGEN: MÉTODO WORDPRESS CDN 🔥
+                // Quitamos el https:// y usamos i0.wp.com. Es la mejor lavadora del mercado.
+                const cleanUrl = rawThumb.replace(/^https?:\/\//, '');
+                const thumb = `https://i0.wp.com/${cleanUrl}`;
                 
                 const titulo = caption ? caption.textContent.trim() : 'Gallery';
                 
@@ -1059,10 +1058,8 @@ function procesarHTML_NH(html, pageNum) {
             }
         });
 
-        // Actualizamos lógica de scroll
         paginaActual = pageNum;
         
-        // Mover sensor al final
         const f = document.getElementById('feed-infinito');
         if(sentinel && f) {
             f.appendChild(sentinel);
@@ -1098,8 +1095,8 @@ function renderCardNhentai(thumb, title, badgeTxt, linkReal) {
     document.getElementById('feed-infinito').appendChild(card);
 }
 
-// ==========================================
-// 6. MOTOR HENTAI COSPLAYS (SCRAPING SIMPLE)
+/// ==========================================
+// 6. MOTOR HENTAI COSPLAYS (VERSIÓN TURBO JSON)
 // ==========================================
 
 const COSPLAY_BASE = "https://hentai-cosplays.com";
@@ -1120,126 +1117,55 @@ async function cargarPaginaCosplay(pageNum) {
     if(sentinel) sentinel.style.display = 'none';
 
     // Construcción de URL
-    // Home: /page/1/
-    // Search: /search/termino/page/1/
-    let targetUrl = '';
-    if (query) {
-        targetUrl = `${COSPLAY_BASE}/search/${encodeURIComponent(query)}/page/${safePage}/`;
-    } else {
-        targetUrl = `${COSPLAY_BASE}/page/${safePage}/`;
-    }
+    let targetUrl = query 
+        ? `${COSPLAY_BASE}/search/${encodeURIComponent(query)}/page/${safePage}/` 
+        : `${COSPLAY_BASE}/page/${safePage}/`;
 
-    // Proxies (Este sitio es suave, AllOrigins suele bastar)
+    // PROXIES MEJORADOS (JSON WRAPPER PRIMERO)
     const proxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://api.codetabs.com/v1/proxy/?quest=',
-        'https://corsproxy.io/?'
+        { url: 'https://api.allorigins.win/get?url=', type: 'json_wrapper' }, // El más rápido
+        { url: 'https://corsproxy.io/?', type: 'direct' },
+        { url: 'https://api.codetabs.com/v1/proxy/?quest=', type: 'direct' }
     ];
 
     let exito = false;
 
-    for (let proxy of proxies) {
+    for (let p of proxies) {
+        if(window.debugEnabled) logDebug(`[COSPLAY] Probando: ${p.url.split('/')[2]}`);
+
         try {
-            if(window.debugEnabled) logDebug(`[COSPLAY] Probando: ${proxy.split('/')[2]}`);
-            const res = await fetch(proxy + encodeURIComponent(targetUrl));
+            // Timeout de 8s para no quedarnos colgados
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const res = await fetch(p.url + encodeURIComponent(targetUrl), { signal: controller.signal });
+            clearTimeout(timeoutId);
+
             if (!res.ok) continue;
-            
-            const html = await res.text();
+
+            let html = '';
+            // Desempaquetado JSON
+            if (p.type === 'json_wrapper') {
+                const data = await res.json();
+                if (!data.contents) throw new Error("Vacio");
+                html = data.contents;
+            } else {
+                html = await res.text();
+            }
+
             if (html.length < 500) continue;
 
             procesarHTML_Cosplay(html, safePage);
             exito = true;
-            break;
+            break; 
         } catch (e) { }
     }
 
     if (!exito) {
         cargando = false;
-        if(status) status.innerText = "Error: No se pudo conectar.";
+        if(status) status.innerText = "Error: HentaiCosplays no responde.";
         if(sentinel) sentinel.innerText = "Reintentar";
     }
-}
-
-function procesarHTML_Cosplay(html, pageNum) {
-    try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        
-        // Estructura del sitio: <div id="content"> <div class="post"> ...
-        const posts = doc.querySelectorAll('#content .post');
-
-        if (!posts || posts.length === 0) {
-            hayMas = false;
-            document.getElementById('centinela-scroll').innerText = "Fin de resultados.";
-            cargando = false;
-            return;
-        }
-
-        document.getElementById('loading-status').style.display = 'none';
-        const sentinel = document.getElementById('centinela-scroll');
-        if(sentinel) sentinel.style.display = 'flex';
-
-        posts.forEach(p => {
-            const linkTag = p.querySelector('a');
-            const imgTag = p.querySelector('img');
-            // El título suele estar en el atributo title del link o img
-            const title = linkTag.getAttribute('title') || imgTag.getAttribute('alt') || "Cosplay Set";
-
-            if (linkTag && imgTag) {
-                let rawThumb = imgTag.src;
-                // Arreglo de URL relativa
-                if (rawThumb.startsWith('/')) rawThumb = COSPLAY_BASE + rawThumb;
-                
-                // 🔥 LAVADO DE IMAGEN (NECESARIO)
-                // Usamos wsrv.nl para que sea rápido y seguro
-                const thumb = `https://wsrv.nl/?url=${encodeURIComponent(rawThumb)}&output=jpg&w=400`;
-
-                let linkReal = linkTag.getAttribute('href');
-                if (linkReal.startsWith('/')) linkReal = COSPLAY_BASE + linkReal;
-
-                // Extraer nombre del modelo/personaje para el badge (lo sacamos de la URL)
-                // ej: /image/name-of-model/ -> Name Of Model
-                let badgeTxt = 'COSPLAY';
-                const parts = linkReal.split('/');
-                if(parts.length > 4) badgeTxt = parts[4].replace(/-/g, ' ').toUpperCase().substring(0, 10);
-
-                renderCardCosplay(thumb, title, badgeTxt, linkReal);
-            }
-        });
-
-        paginaActual = pageNum;
-        const f = document.getElementById('feed-infinito');
-        if(sentinel && f) {
-            f.appendChild(sentinel);
-            sentinel.innerText = "...";
-        }
-
-    } catch (e) {
-        if(window.debugEnabled) logDebug("Parser Cosplay Error: " + e.message);
-    } finally {
-        cargando = false;
-    }
-}
-
-function renderCardCosplay(thumb, title, badgeTxt, linkReal) {
-    const card = document.createElement('div');
-    card.className = 'tarjeta';
-    
-    // Diseño Rosado
-    const html = `
-    <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')" style="min-height: 250px; align-items: flex-start;">
-        <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:cover; height: 100%; width: 100%;">
-        <div class="overlay-btn" style="border-radius:4px; font-size:0.7rem; background:#d63384; bottom: 10px; right: 10px; max-width:100px; white-space:nowrap; overflow:hidden;">${badgeTxt}</div>
-    </div>
-    <div class="meta-footer">
-        <div class="badge" style="background:#d63384">HC</div>
-        <div class="meta-desc-preview" onclick="window.open('${linkReal}', '_blank')">
-            ${title} <span class="ver-mas">↗ Ver Set</span>
-        </div>
-    </div>`;
-    
-    card.innerHTML = html;
-    document.getElementById('feed-infinito').appendChild(card);
 }
 
 // --- INIT ---
