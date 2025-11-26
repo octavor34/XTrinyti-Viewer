@@ -274,7 +274,7 @@ function ejecutarBusqueda() {
     else if (modoActual === 'chan_catalog') cargarCatalogo4Chan();
     else if (modoActual === 'reddit') cargarPaginaReddit();
     else if (modoActual === 'x') cargarX();
-    else if (modoActual === 'nhentai') cargarPaginaEhentai(0);
+    else if (modoActual === 'ehentai') cargarPaginaEhentai(0);
     else if (modoActual === 'cosplay') cargarPaginaCosplay(1); // <--- NUEVA LÍNEA (Empieza en pág 1)
 }
 
@@ -1095,8 +1095,8 @@ function renderCardNhentai(thumb, title, badgeTxt, linkReal) {
     document.getElementById('feed-infinito').appendChild(card);
 }
 
-/// ==========================================
-// 6. MOTOR HENTAI COSPLAYS (VERSIÓN TURBO JSON)
+// ==========================================
+// 6. MOTOR HENTAI COSPLAYS (VERSIÓN BLINDADA)
 // ==========================================
 
 const COSPLAY_BASE = "https://hentai-cosplays.com";
@@ -1116,27 +1116,27 @@ async function cargarPaginaCosplay(pageNum) {
     if(status) { status.style.display = 'block'; status.innerText = `Cargando Cosplays (Pág ${safePage})...`; }
     if(sentinel) sentinel.style.display = 'none';
 
-    // Construcción de URL
+    // URL
     let targetUrl = query 
         ? `${COSPLAY_BASE}/search/${encodeURIComponent(query)}/page/${safePage}/` 
         : `${COSPLAY_BASE}/page/${safePage}/`;
 
-    // PROXIES MEJORADOS (JSON WRAPPER PRIMERO)
+    // PROXIES: Cambiamos el orden y añadimos un fallback manual
     const proxies = [
-        { url: 'https://api.allorigins.win/get?url=', type: 'json_wrapper' }, // El más rápido
-        { url: 'https://corsproxy.io/?', type: 'direct' },
-        { url: 'https://api.codetabs.com/v1/proxy/?quest=', type: 'direct' }
+        { url: 'https://api.allorigins.win/get?url=', type: 'json_wrapper' },
+        { url: 'https://api.codetabs.com/v1/proxy/?quest=', type: 'direct' },
+        { url: 'https://corsproxy.io/?', type: 'direct' }
     ];
 
     let exito = false;
 
     for (let p of proxies) {
         if(window.debugEnabled) logDebug(`[COSPLAY] Probando: ${p.url.split('/')[2]}`);
+        if(status) status.innerText = `Conectando vía ${p.url.split('/')[2]}...`;
 
         try {
-            // Timeout de 8s para no quedarnos colgados
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
             const res = await fetch(p.url + encodeURIComponent(targetUrl), { signal: controller.signal });
             clearTimeout(timeoutId);
@@ -1144,7 +1144,6 @@ async function cargarPaginaCosplay(pageNum) {
             if (!res.ok) continue;
 
             let html = '';
-            // Desempaquetado JSON
             if (p.type === 'json_wrapper') {
                 const data = await res.json();
                 if (!data.contents) throw new Error("Vacio");
@@ -1153,17 +1152,20 @@ async function cargarPaginaCosplay(pageNum) {
                 html = await res.text();
             }
 
-            if (html.length < 500) continue;
+            // Validación de contenido real
+            if (!html || html.length < 500) continue;
 
             procesarHTML_Cosplay(html, safePage);
             exito = true;
             break; 
-        } catch (e) { }
+        } catch (e) { 
+            if(window.debugEnabled) logDebug(`[COSPLAY] Falló: ${e.message}`);
+        }
     }
 
     if (!exito) {
         cargando = false;
-        if(status) status.innerText = "Error: HentaiCosplays no responde.";
+        if(status) status.innerHTML = `<span style="color:red">ERROR DE RED</span><br>HentaiCosplays no responde a los proxies.`;
         if(sentinel) sentinel.innerText = "Reintentar";
     }
 }
