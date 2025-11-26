@@ -25,6 +25,7 @@
         <label class="lbl-title">Plataforma:</label>
         <select id="source-selector" onchange="cambiarModo()">
             <option value="r34">🟦 Rule34</option>
+            <option value="ehentai">🐼 E-Hentai</option>
             <option value="4chan">🍀 4Chan</option>
             <option value="reddit">🟧 Reddit</option>
             <option value="x">🖤 X (Twitter)</option>
@@ -86,6 +87,11 @@
         <div id="x-inputs" class="input-group">
             <input type="text" id="x-search" placeholder="Ej: elonmusk o #art">
             <button class="btn-action" style="background:#000; border:1px solid #333" onclick="ejecutarBusquedaX()">BUSCAR EN X</button>
+        </div>
+
+        <div id="ehentai-inputs" class="input-group">
+            <input type="text" id="ehentai-search" placeholder="Ej: big breasts, milf...">
+            <button class="btn-action" style="background:#5c0d12;" onclick="buscarEhentai()">BUSCAR GALERÍAS</button>
         </div>
         
         </div>

@@ -128,6 +128,12 @@ function cambiarModo() {
             document.getElementById('x-inputs').style.display = 'block';
             document.documentElement.style.setProperty('--accent', '#ffffff');
             document.getElementById('app-title').innerText = "X (TWITTER)";
+        } else if (val === 'ehentai') {
+            modoActual = 'ehentai';
+            document.getElementById('ehentai-inputs').style.display = 'block';
+            document.documentElement.style.setProperty('--accent', '#5c0d12'); // Color Rojo Oscuro
+            document.getElementById('app-title').innerText = "E-HENTAI GALLERIES";
+            feed.classList.add('tiktok-mode'); 
         }
     }
 
@@ -262,12 +268,14 @@ function ejecutarBusqueda() {
     else if (modoActual === 'chan_catalog') cargarCatalogo4Chan();
     else if (modoActual === 'reddit') cargarPaginaReddit();
     else if (modoActual === 'x') cargarX();
+    else if (modoActual === 'ehentai') cargarPaginaEhentai(0);
 }
 
 function cargarSiguientePagina() {
     document.getElementById('centinela-scroll').innerText = "Cargando...";
     if (modoActual === 'booru_generic' || modoActual === 'r34') cargarPaginaBooru(paginaActual + 1);
     if (modoActual === 'reddit') cargarPaginaReddit();
+    if (modoActual === 'ehentai') cargarPaginaEhentai(paginaActual + 1);
 }
 
 // ==========================================
@@ -901,8 +909,113 @@ function accionTag(mode) {
     cerrarModal(null); setTimeout(() => { cargando = false; buscarR34(); }, 50);
 }
 
+// ==========================================
+// 5. MOTOR E-HENTAI (SCRAPING AVANZADO)
+// ==========================================
+
+function buscarEhentai() { ejecutarBusqueda(); }
+
+async function cargarPaginaEhentai(pageNum) {
+    if (cargando) return;
+    cargando = true;
+
+    const query = document.getElementById('ehentai-search').value.trim();
+    // Construimos la URL de búsqueda web, NO la de la API.
+    // E-Hentai usa f_search para buscar tags.
+    let url = `https://e-hentai.org/?page=${pageNum}`;
+    if (query) url += `&f_search=${encodeURIComponent(query)}`;
+
+    try {
+        // Usamos CodeTabs porque maneja mejor el HTML plano que otros proxies
+        const proxyUrl = 'https://api.codetabs.com/v1/proxy/?quest=';
+        const target = proxyUrl + encodeURIComponent(url);
+
+        const res = await fetch(target);
+        const htmlTexto = await res.text();
+
+        // Verificamos si nos bloquearon o si falló la carga
+        if (!htmlTexto || htmlTexto.length < 500) throw new Error("Bloqueo o error de carga.");
+
+        // --- SCRAPING ---
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlTexto, "text/html");
+        
+        // Buscamos las filas de la tabla de resultados (clase .itg)
+        const filas = doc.querySelectorAll('table.itg tr');
+        
+        // Si no hay filas o solo está el header
+        if (!filas || filas.length < 2) {
+            hayMas = false;
+            document.getElementById('centinela-scroll').innerText = "Fin de resultados.";
+            return;
+        }
+
+        document.getElementById('loading-status').style.display = 'none';
+        document.getElementById('centinela-scroll').style.display = 'flex';
+
+        let count = 0;
+        filas.forEach(fila => {
+            // .gl1t contiene la imagen (thumb)
+            // .gl3c contiene el título y link
+            const imgContainer = fila.querySelector('.gl1t img');
+            const infoContainer = fila.querySelector('.gl3c a');
+            
+            if (imgContainer && infoContainer) {
+                // Truco: EH a veces pone la imagen real en data-src
+                let thumb = imgContainer.dataset.src || imgContainer.src;
+                const titulo = infoContainer.textContent;
+                const linkGaleria = infoContainer.href;
+                
+                // Categoría (ej: Doujinshi, Manga)
+                const catDiv = fila.querySelector('.cn');
+                const categoria = catDiv ? catDiv.textContent : 'EH';
+
+                renderCardEhentai(thumb, titulo, categoria, linkGaleria);
+                count++;
+            }
+        });
+        
+        if (count === 0 && pageNum === 0) throw new Error("Sin resultados.");
+
+        paginaActual = pageNum;
+        
+        // Rescatar scroll (Mover el sensor al final)
+        const s = document.getElementById('centinela-scroll');
+        const f = document.getElementById('feed-infinito');
+        if(s && f) f.appendChild(s);
+
+    } catch (e) {
+        document.getElementById('loading-status').innerText = `Error EH: ${e.message}`;
+        // Si falla CodeTabs, a veces es útil reintentar manualmente
+        if(window.debugEnabled) logDebug("EH Scraping falló: " + e.message);
+    } finally {
+        cargando = false;
+    }
+}
+
+function renderCardEhentai(thumb, title, category, linkReal) {
+    const card = document.createElement('div');
+    card.className = 'tarjeta';
+    
+    // Al ser galerías, hacemos que al hacer click se abra la web original
+    // Es muy difícil hacer un lector de galerías completo solo con JS frontend.
+    const html = `
+    <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')">
+        <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:cover;">
+        <div class="overlay-btn" style="border-radius:4px; font-size:0.8rem; background:#5c0d12;">${category}</div>
+    </div>
+    <div class="meta-footer">
+        <div class="badge" style="background:#5c0d12">EH</div>
+        <div class="meta-desc-preview" onclick="window.open('${linkReal}', '_blank')">
+            ${title} <span class="ver-mas">↗ Abrir Galería</span>
+        </div>
+    </div>`;
+    
+    card.innerHTML = html;
+    document.getElementById('feed-infinito').appendChild(card);
+}
+
 // --- INIT ---
-// --- INIT (VERSIÓN CORREGIDA Y LIMPIA) ---
 window.onload = function() {
     // 1. INICIALIZACIONES BÁSICAS 
     initDebugSystem(); 
