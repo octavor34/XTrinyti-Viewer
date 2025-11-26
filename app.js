@@ -910,67 +910,96 @@ function accionTag(mode) {
 }
 
 // ==========================================
-// 5. MOTOR N-HENTAI (EL SUSTITUTO PRÁCTICO)
+// 5. MOTOR N-HENTAI (VERSIÓN TURBO CON TIMEOUT)
 // ==========================================
 
-// Usamos el mirror .to porque es más amigable con proxies que .net
 const NH_BASE = "https://nhentai.to"; 
 
 function buscarEhentai() { ejecutarBusqueda(); } 
 
-// OJO: N-Hentai empieza en página 1. Tu sistema usa 0. Hacemos el ajuste.
 async function cargarPaginaEhentai(pageNum) { 
     if (cargando) return;
     cargando = true;
     
-    // Ajuste de índice
     const safePage = pageNum === 0 ? 1 : pageNum;
     const query = document.getElementById('ehentai-search').value.trim();
     
-    // Construimos la URL
-    let targetUrl = '';
-    if (query) {
-        // Búsqueda
-        targetUrl = `${NH_BASE}/search?q=${encodeURIComponent(query)}&page=${safePage}`;
-    } else {
-        // Inicio (Recientes)
-        targetUrl = `${NH_BASE}/?page=${safePage}`;
+    // UI
+    const status = document.getElementById('loading-status');
+    const sentinel = document.getElementById('centinela-scroll');
+    if(status) { 
+        status.style.display = 'block'; 
+        status.innerText = `Conectando N-Hentai (Pág ${safePage})...`; 
     }
+    if(sentinel) sentinel.style.display = 'none';
 
-    // LISTA DE PROXIES ROTATIVOS
+    // URL TARGET
+    let targetUrl = query 
+        ? `${NH_BASE}/search?q=${encodeURIComponent(query)}&page=${safePage}`
+        : `${NH_BASE}/?page=${safePage}`;
+
+    // LISTA DE PROXIES OPTIMIZADA (El orden importa)
+    // 1. AllOrigins JSON: Suele saltar mejor los bloqueos de "raw"
+    // 2. CorsProxy: Rápido pero a veces estricto
+    // 3. CodeTabs: El más lento, lo dejamos al final
     const proxies = [
-        'https://api.codetabs.com/v1/proxy/?quest=',
-        'https://corsproxy.io/?',
-        'https://api.allorigins.win/raw?url='
+        { url: 'https://api.allorigins.win/get?url=', type: 'json_wrapper' },
+        { url: 'https://corsproxy.io/?', type: 'direct' },
+        { url: 'https://api.codetabs.com/v1/proxy/?quest=', type: 'direct' }
     ];
 
     let exito = false;
-    const status = document.getElementById('loading-status');
-    if(status) { status.style.display = 'block'; status.innerText = `Cargando Galerías (Pág ${safePage})...`; }
-    document.getElementById('centinela-scroll').style.display = 'none';
 
-    for (let proxy of proxies) {
+    for (let p of proxies) {
+        // Log para que veas qué pasa
+        if(status) status.innerText = `Probando vía ${p.url.split('/')[2]}...`;
+        if(window.debugEnabled) logDebug(`[NH] Intentando: ${p.url.split('/')[2]}`);
+
         try {
-            if(window.debugEnabled) logDebug(`[NH] Probando ruta: ${proxy.split('/')[2]}`);
-            
-            const res = await fetch(proxy + encodeURIComponent(targetUrl));
-            if (!res.ok) continue;
+            // --- TRUCO DEL TIMEOUT ---
+            // Si el proxy no responde en 8 segundos, lo cancelamos.
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-            const html = await res.text();
-            
-            // Si el HTML es muy corto, es un error del proxy
-            if (html.length < 1000) continue;
+            const finalUrl = p.url + encodeURIComponent(targetUrl);
+            const res = await fetch(finalUrl, { signal: controller.signal });
+            clearTimeout(timeoutId); // Si respondió, cancelamos el timer
 
+            if (!res.ok) throw new Error("Http Error");
+
+            let html = '';
+
+            // Manejo especial para AllOrigins (devuelve JSON con el HTML dentro)
+            if (p.type === 'json_wrapper') {
+                const data = await res.json();
+                if (!data.contents) throw new Error("JSON vacío");
+                html = data.contents;
+            } else {
+                html = await res.text();
+            }
+
+            // Validar que bajamos algo útil
+            if (html.length < 500 || html.includes("502 Bad Gateway")) {
+                throw new Error("HTML inválido o error de gateway");
+            }
+
+            // Si llegamos aquí, ¡TENEMOS LA PÁGINA!
             procesarHTML_NH(html, safePage);
             exito = true;
-            break; // ¡Entramos!
-        } catch (e) { }
+            break; // Salimos del bucle
+
+        } catch (e) {
+            if(window.debugEnabled) logDebug(`[NH] Falló ${p.url.split('/')[2]}: ${e.message}`);
+            continue; // Vamos al siguiente proxy
+        }
     }
 
     if (!exito) {
         cargando = false;
-        if(status) status.innerText = "Error: Bloqueo de Proxies. Intenta más tarde.";
-        document.getElementById('centinela-scroll').innerText = "Reintentar";
+        if(status) {
+            status.innerHTML = `<span style="color:#ff5555">FALLO DE RED</span><br>Los proxies no pueden acceder a N-Hentai ahora.<br>Intenta buscar otra cosa o espera un rato.`;
+        }
+        if(sentinel) sentinel.innerText = "Reintentar";
     }
 }
 
@@ -979,7 +1008,7 @@ function procesarHTML_NH(html, pageNum) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
         
-        // En nhentai.to las galerías son divs con clase .gallery
+        // Selector específico para nhentai.to
         const galerias = doc.querySelectorAll('.gallery');
 
         if (!galerias || galerias.length === 0) {
@@ -990,7 +1019,8 @@ function procesarHTML_NH(html, pageNum) {
         }
 
         document.getElementById('loading-status').style.display = 'none';
-        document.getElementById('centinela-scroll').style.display = 'flex';
+        const sentinel = document.getElementById('centinela-scroll');
+        if(sentinel) sentinel.style.display = 'flex';
 
         galerias.forEach(g => {
             const linkTag = g.querySelector('a.cover');
@@ -998,18 +1028,16 @@ function procesarHTML_NH(html, pageNum) {
             const caption = g.querySelector('.caption');
 
             if (linkTag && imgTag) {
-                // Lazy loading: a veces está en data-src
+                // Truco de lazy loading
                 let thumb = imgTag.dataset.src || imgTag.src;
-                // Arreglar URLs relativas
                 if (thumb.startsWith('//')) thumb = 'https:' + thumb;
                 
                 const titulo = caption ? caption.textContent.trim() : 'Gallery';
                 
-                // Arreglar Link relativo
                 let linkReal = linkTag.getAttribute('href');
                 if (linkReal.startsWith('/')) linkReal = NH_BASE + linkReal;
 
-                // Extraer ID para mostrarlo bonito (ej: #177013)
+                // ID bonito
                 const idMatch = linkReal.match(/\/g\/(\d+)/);
                 const idStr = idMatch ? `#${idMatch[1]}` : 'NH';
 
@@ -1017,18 +1045,19 @@ function procesarHTML_NH(html, pageNum) {
             }
         });
 
-        // Actualizamos la página actual para el scroll
-        paginaActual = pageNum; // Mantenemos el índice 1-based para la siguiente llamada
+        // Actualizamos lógica de scroll
+        paginaActual = pageNum;
         
-        // Movemos el sensor de scroll al final
-        const s = document.getElementById('centinela-scroll');
+        // Mover sensor al final
         const f = document.getElementById('feed-infinito');
-        if(s && f) f.appendChild(s);
+        if(sentinel && f) {
+            f.appendChild(sentinel);
+            sentinel.innerText = "...";
+        }
         
-        cargando = false;
-
     } catch (e) {
-        if(window.debugEnabled) logDebug("Parser Falló: " + e.message);
+        if(window.debugEnabled) logDebug("Parser Error: " + e.message);
+    } finally {
         cargando = false;
     }
 }
@@ -1037,9 +1066,8 @@ function renderCardNhentai(thumb, title, badgeTxt, linkReal) {
     const card = document.createElement('div');
     card.className = 'tarjeta';
     
-    // Al hacer click abrimos la galería real
     const html = `
-    <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')" style="align-items: flex-start;">
+    <div class="media-wrapper" onclick="window.open('${linkReal}', '_blank')" style="min-height: 250px; align-items: flex-start;">
         <img class="media-content" src="${thumb}" loading="lazy" style="object-fit:cover; height: 100%; width: 100%;">
         <div class="overlay-btn" style="border-radius:4px; font-size:0.8rem; background:#ed2553; bottom: 10px; right: 10px;">${badgeTxt}</div>
     </div>
